@@ -1,0 +1,8 @@
+.drawer-width {
+  max-width: fit-content !important;
+  padding: 12px;
+}
+
+.drawer-width-open {
+  transform: translateX(500px) translateY(0px) translateZ(0px) !important;
+}

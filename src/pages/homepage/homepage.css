@@ -1,0 +1,19 @@
+.card-shopping-cart {
+  top: -5%;
+  left: 80%;
+  z-index: 22;
+  position: absolute;
+}
+
+.card-image {
+  z-index: 1;
+  position: absolute;
+}
+
+.img-container {
+  overflow: hidden;
+}
+
+.homepage-img {
+  filter: brightness(30%); /* Keeps the image darker */
+}
