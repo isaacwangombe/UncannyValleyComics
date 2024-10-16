@@ -1,4 +1,5 @@
 import React from "react";
+import { Typography } from "@material-tailwind/react";
 
 const FlipPage = ({ images, className }) => {
   return (
@@ -8,7 +9,24 @@ const FlipPage = ({ images, className }) => {
           <div className="screen2-cont1">
             <div className="screen2-one item">
               {images[0] && images[0].Image ? (
-                <img src={images[0].Image} className="img" alt="" />
+                // <img src={images[0].Image} className="img" alt="" />
+                <figure className="relative h-96 w-full">
+                  <img
+                    className="h-full w-full rounded-xl object-cover object-center"
+                    src={images[0].Image}
+                    alt="nature image"
+                  />
+                  <figcaption className="absolute bottom-8 left-2/4 flex w-[calc(100%-4rem)] -translate-x-2/4 justify-between rounded-xl border border-white bg-white/75 py-4 px-6 shadow-lg shadow-black/5 saturate-200 backdrop-blur-sm">
+                    <div>
+                      <Typography variant="h5" color="blue-gray">
+                        {images[0].Name}
+                      </Typography>
+                      <Typography color="gray" className="mt-2 font-normal">
+                        {images[0].Amount}
+                      </Typography>
+                    </div>
+                  </figcaption>
+                </figure>
               ) : (
                 <div className="blank-image"></div> // Blank div when image is not available
               )}
