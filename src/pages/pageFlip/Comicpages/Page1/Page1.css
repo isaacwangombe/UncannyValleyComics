@@ -4,6 +4,7 @@
   grid-template-rows: repeat(3, 1fr);
   gap: 10px;
   padding: 10px;
+  background-color: white;
 }
 
 .screen2-cont1 {
@@ -27,7 +28,6 @@
 .item {
   border: 5px solid black;
   background-color: rgb(255, 255, 255);
-
   height: 33vh;
   overflow: hidden;
 }

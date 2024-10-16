@@ -4,6 +4,7 @@
   display: grid;
   grid-template-rows: repeat(3, 1fr);
   gap: 10px;
+  background-color: white;
 }
 
 .screen1-cont1 {
