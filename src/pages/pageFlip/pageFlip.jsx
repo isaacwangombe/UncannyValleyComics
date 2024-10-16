@@ -1,4 +1,7 @@
 import React from "react";
+import { useRef } from "react";
+import { Button } from "@material-tailwind/react";
+
 import HTMLFlipBook from "react-pageflip";
 import "./PageFlip.css";
 import ComicImages from "../../assets/ComicImages/ComicImagesSmaller";
@@ -8,6 +11,8 @@ import PageThree from "./Comicpages/Page3/Page3";
 import NavbarWithSubmenu from "./../../components/navbar/navbar";
 
 const PageFlip = () => {
+  const book = useRef();
+
   // Define the class names (these will cycle per page)
   const classNames = ["page-1", "page-2", "page-3"];
 
@@ -28,12 +33,29 @@ const PageFlip = () => {
   return (
     <div className="">
       <NavbarWithSubmenu />
+      <div className="">
+        <Button
+          color="blue"
+          className="mx-10"
+          onClick={() => book.current.pageFlip().flipPrev()}
+        >
+          Prev page
+        </Button>
+        <Button color="blue" onClick={() => book.current.pageFlip().flipNext()}>
+          Next page
+        </Button>
+      </div>
       <div className="cont">
         <HTMLFlipBook
           width={500}
           height={1000}
           size="stretch"
           showCover={false}
+          usePortrait={false}
+          swipeDistance={0}
+          // autoSize={false}
+          useMouseEvents={false}
+          ref={book}
         >
           {Array.from({
             length: Math.ceil(ComicImages.length / Math.min(...nameCounts)),

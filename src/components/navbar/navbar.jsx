@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+
 import {
   Navbar,
   Collapse,
@@ -34,7 +36,7 @@ const NavbarWithSubmenu = () => {
         className="p-1 font-medium text-gray-600"
       >
         <a href="#" className="flex items-center">
-          Sales
+          Comics
         </a>
       </Typography>
       <Typography
@@ -43,7 +45,7 @@ const NavbarWithSubmenu = () => {
         className="p-1 font-medium text-gray-600"
       >
         <a href="#" className="flex items-center">
-          New In
+          Merch
         </a>
       </Typography>
       <Typography
@@ -52,7 +54,7 @@ const NavbarWithSubmenu = () => {
         className="p-1 font-medium text-gray-600"
       >
         <a href="#" className="flex items-center">
-          Blocks
+          Publishing
         </a>
       </Typography>
       <Typography
@@ -61,7 +63,7 @@ const NavbarWithSubmenu = () => {
         className="p-1 font-medium text-gray-600"
       >
         <a href="#" className="flex items-center">
-          Docs
+          About Us
         </a>
       </Typography>
     </ul>
@@ -86,13 +88,15 @@ const NavbarWithSubmenu = () => {
                 )}
               </IconButton>
             </div>
-            <Typography
-              as="a"
-              href="#"
-              className="mr-4 cursor-pointer py-1.5 font-medium mb-2"
-            >
-              Uncanny Valley Comics
-            </Typography>
+            <Link to={"/"}>
+              <Typography
+                as="a"
+                href="#"
+                className="mr-4 cursor-pointer py-1.5 font-medium mb-2"
+              >
+                Uncanny Valley Comics
+              </Typography>
+            </Link>
             <IconButton variant="outlined" onClick={openDrawer}>
               <i class="fa-solid fa-cart-shopping"></i>{" "}
             </IconButton>
