@@ -1,3 +1,5 @@
+import ReactDOM from "react-dom/client";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
@@ -14,16 +16,15 @@ import PageFlip from "./pages/pageFlip/pageFlip";
 function App() {
   return (
     <>
-      <NavbarWithSubmenu />
-      {/* <CartItems /> */}
-      {/* <Homepage /> */}
-      {/* <RightDrawer /> */}
-      {/* <About /> */}
-      <PageFlip />
-      {/* <Page2 /> */}
-      {/* <Page3 /> */}
-      {/* <Page4 /> */}
-      {/* <GridTests /> */}
+      {/* <NavbarWithSubmenu />
+      <Homepage /> */}
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Homepage />}>
+            <Route path="all-comics" element={<PageFlip />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </>
   );
 }

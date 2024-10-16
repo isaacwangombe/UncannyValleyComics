@@ -5,6 +5,7 @@ import ComicImages from "../../assets/ComicImages/ComicImagesSmaller";
 import PageOne from "./Comicpages/Page1/Page1";
 import PageTwo from "./Comicpages/Page2/Page2";
 import PageThree from "./Comicpages/Page3/Page3";
+import NavbarWithSubmenu from "./../../components/navbar/navbar";
 
 const PageFlip = () => {
   // Define the class names (these will cycle per page)
@@ -25,58 +26,66 @@ const PageFlip = () => {
   let remainingItems = ComicImages.length;
 
   return (
-    <div className="cont">
-      <HTMLFlipBook width={500} height={1000} size="stretch" showCover={false}>
-        {Array.from({
-          length: Math.ceil(ComicImages.length / Math.min(...nameCounts)),
-        }).map((_, pageIndex) => {
-          // Cycle through the class names and name counts
-          const className = classNames[pageIndex % classNames.length];
-          const namesToShow = nameCounts[pageIndex % nameCounts.length];
+    <div className="">
+      <NavbarWithSubmenu />
+      <div className="cont">
+        <HTMLFlipBook
+          width={500}
+          height={1000}
+          size="stretch"
+          showCover={false}
+        >
+          {Array.from({
+            length: Math.ceil(ComicImages.length / Math.min(...nameCounts)),
+          }).map((_, pageIndex) => {
+            // Cycle through the class names and name counts
+            const className = classNames[pageIndex % classNames.length];
+            const namesToShow = nameCounts[pageIndex % nameCounts.length];
 
-          // If there are fewer images left than namesToShow, adjust namesToShow
-          const adjustedNamesToShow = Math.min(namesToShow, remainingItems);
+            // If there are fewer images left than namesToShow, adjust namesToShow
+            const adjustedNamesToShow = Math.min(namesToShow, remainingItems);
 
-          // Get the images for this page based on the current index
-          const imagesForPage = getImagesForPage(
-            currentIndex,
-            adjustedNamesToShow
-          );
-          let PageComponent;
-          switch (namesToShow) {
-            case 7:
-              PageComponent = PageOne;
-              break;
-            case 6:
-              PageComponent = PageTwo;
-              break;
-            case 8:
-              PageComponent = PageThree;
-              break;
-            default:
-              return null; // Fallback
-          }
+            // Get the images for this page based on the current index
+            const imagesForPage = getImagesForPage(
+              currentIndex,
+              adjustedNamesToShow
+            );
+            let PageComponent;
+            switch (namesToShow) {
+              case 7:
+                PageComponent = PageOne;
+                break;
+              case 6:
+                PageComponent = PageTwo;
+                break;
+              case 8:
+                PageComponent = PageThree;
+                break;
+              default:
+                return null; // Fallback
+            }
 
-          // Render the FlipPage component with the available images
-          const pageComponent = (
-            <div className="">
-              <PageComponent key={pageIndex} images={imagesForPage} />
+            // Render the FlipPage component with the available images
+            const pageComponent = (
+              <div className="">
+                <PageComponent key={pageIndex} images={imagesForPage} />
 
-              {/* <PageTwo
+                {/* <PageTwo
                 key={pageIndex}
                 images={imagesForPage}
                 className={className}
               /> */}
-            </div>
-          );
+              </div>
+            );
 
-          // Update the currentIndex for the next page and remaining items
-          currentIndex += adjustedNamesToShow;
-          remainingItems -= adjustedNamesToShow;
+            // Update the currentIndex for the next page and remaining items
+            currentIndex += adjustedNamesToShow;
+            remainingItems -= adjustedNamesToShow;
 
-          return pageComponent;
-        })}
-      </HTMLFlipBook>
+            return pageComponent;
+          })}
+        </HTMLFlipBook>
+      </div>
     </div>
   );
 };

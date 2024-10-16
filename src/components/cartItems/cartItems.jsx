@@ -52,6 +52,7 @@ const CartItems = () => {
                   </IconButton>
                   <div className="">{count}</div>
                   <IconButton
+                    color="blue"
                     size="sm"
                     variant="outlined"
                     className="rounded-full cart-item-button"
