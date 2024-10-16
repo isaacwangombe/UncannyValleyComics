@@ -3,8 +3,10 @@
   /* width: 50vw; */
   display: grid;
   grid-template-rows: repeat(3, 1fr);
+  padding: 10px;
   gap: 10px;
   background-color: white;
+  border: 2px solid #ccc;
 }
 
 .screen1-cont1 {
