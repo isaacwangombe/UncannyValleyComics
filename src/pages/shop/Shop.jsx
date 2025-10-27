@@ -11,7 +11,6 @@ const Shop = () => {
           <Col sm={4}>
             <Filter />
           </Col>
-
           <Col sm={8}>sm=8</Col>
         </Row>
       </Container>{" "}
