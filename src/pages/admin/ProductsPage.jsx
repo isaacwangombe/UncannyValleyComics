@@ -61,7 +61,7 @@ const ProductsAdminPage = () => {
     is_active: true,
   });
 
-  const backendUrl = process.env.REACT_APP_API_URL_SHORT;
+  const backendUrl = process.env.VITE_API_URL_SHORT;
 
   useEffect(() => {
     loadData();
@@ -470,7 +470,7 @@ const ProductsAdminPage = () => {
                     if (typeof img.image === "string") {
                       imageUrl = img.image.startsWith("http")
                         ? img.image
-                        : REACT_APP_API_URL_SHORT + `${img.image}`;
+                        : backendUrl + `${img.image}`;
                     } else if (img.image?.url) {
                       imageUrl = img.image.url;
                     }
