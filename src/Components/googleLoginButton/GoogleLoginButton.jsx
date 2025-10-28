@@ -1,9 +1,11 @@
 import React from "react";
 
 const GoogleLoginButton = () => {
+  const backendUrl = process.env.REACT_APP_API_URL_SHORT;
+
   const handleGoogleLogin = () => {
     // Redirect user to your Django backend's Google login endpoint
-    window.location.href = "http://127.0.0.1:8000/accounts/google/login/";
+    window.location.href = backendUrl + "/accounts/google/login/";
   };
 
   return (

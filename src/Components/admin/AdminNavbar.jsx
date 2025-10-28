@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Navbar, Container, Spinner, Button, Nav } from "react-bootstrap";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = process.env.REACT_APP_API_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 const AdminNavbar = () => {
   const [user, setUser] = useState(null);
@@ -37,7 +38,7 @@ const AdminNavbar = () => {
         credentials: "include",
       });
       setUser(null);
-      window.location.href = "http://127.0.0.1:5173/login";
+      window.location.href = FRONTEND_URL + "/login";
     } catch (err) {
       console.error("Logout failed", err);
     }
@@ -74,9 +75,7 @@ const AdminNavbar = () => {
               <Button
                 variant="dark"
                 size="sm"
-                onClick={() =>
-                  (window.location.href = "http://127.0.0.1:5173/login")
-                }
+                onClick={() => (window.location.href = FRONTEND_URL + "/login")}
               >
                 Login
               </Button>

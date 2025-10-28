@@ -19,7 +19,7 @@ import { api } from "../../apiAdmin";
 import logo from "../../assets/UVC.png";
 import "./Navbar.css";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = process.env.REACT_APP_API_URL;
 
 const Navbars = () => {
   const [search, setSearch] = useState("");

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Form, Button } from "react-bootstrap";
 import AuthCard from "../../Components/authcard/AuthCard";
 
-const backendUrl = "http://127.0.0.1:8000";
+// const backendUrl = "http://127.0.0.1:8000";
+const backendUrl = process.env.REACT_APP_API_URL;
+
 const googleLoginUrl = `${backendUrl}/accounts/google/login/`;
 
 const Login = () => {
@@ -13,7 +15,7 @@ const Login = () => {
 
   // ✅ 1. Fetch CSRF cookie on load
   useEffect(() => {
-    fetch(`${backendUrl}/api/users/set-csrf/`, {
+    fetch(`${backendUrl}/users/set-csrf/`, {
       credentials: "include",
     }).then(() => console.log("CSRF cookie set."));
   }, []);
@@ -34,7 +36,7 @@ const Login = () => {
     const csrfToken = getCookie("csrftoken");
 
     try {
-      const res = await fetch(`${backendUrl}/api/auth/login/`, {
+      const res = await fetch(`${backendUrl}/auth/login/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +64,7 @@ const Login = () => {
 
   // ✅ 3. Google login via redirect (NOT fetch)
   const handleGoogleLogin = async () => {
-    await fetch(`${backendUrl}/api/users/set-csrf/`, {
+    await fetch(`${backendUrl}/users/set-csrf/`, {
       credentials: "include",
     });
     window.location.href = `${googleLoginUrl}?process=login`;

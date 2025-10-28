@@ -13,7 +13,7 @@ function getCookie(name) {
 export async function ensureCsrf() {
   const csrfToken = getCookie("csrftoken");
   if (!csrfToken) {
-    await fetch("http://127.0.0.1:8000/api/users/set-csrf/", {
+    await fetch(API_BASE + "/users/set-csrf/", {
       credentials: "include",
     });
   }
@@ -31,7 +31,7 @@ api.interceptors.request.use(async (config) => {
     config.headers["X-CSRFToken"] = csrfToken;
   } else {
     // fallback: ensure one is set
-    await fetch("http://127.0.0.1:8000/api/users/set-csrf/", {
+    await fetch(API_BASE + "/users/set-csrf/", {
       credentials: "include",
     });
     const newToken = getCookie("csrftoken");
@@ -73,7 +73,7 @@ export const deleteProduct = async (id) =>
 export async function apiEditProduct(id, data) {
   const csrfToken = getCookie("csrftoken");
 
-  const res = await fetch(`http://127.0.0.1:8000/api/products/${id}/`, {
+  const res = await fetch(API_BASE + `/products/${id}/`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -90,7 +90,7 @@ export async function apiEditProduct(id, data) {
 export async function apiAddProduct(data) {
   const csrfToken = getCookie("csrftoken");
 
-  const res = await fetch(`http://127.0.0.1:8000/api/products/`, {
+  const res = await fetch(API_BASE + `/products/`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -119,7 +119,7 @@ export async function bulkUploadProducts(excelFile, zipFile = null) {
   }
 
   // ✅ Include CSRF token header
-  const res = await fetch("http://127.0.0.1:8000/api/products/bulk-upload/", {
+  const res = await fetch(API_BASE + "/products/bulk-upload/", {
     method: "POST",
     credentials: "include",
     headers: {
@@ -139,14 +139,11 @@ export const toggleProductTrending = async (id) => {
     .find((r) => r.startsWith("csrftoken="))
     ?.split("=")[1];
 
-  const res = await fetch(
-    `http://127.0.0.1:8000/api/products/${id}/toggle_trending/`,
-    {
-      method: "POST",
-      headers: { "X-CSRFToken": csrfToken },
-      credentials: "include",
-    }
-  );
+  const res = await fetch(API_BASE + `/products/${id}/toggle_trending/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": csrfToken },
+    credentials: "include",
+  });
 
   if (!res.ok) throw new Error("Failed to toggle trending");
   return res.json();
@@ -162,7 +159,7 @@ export async function uploadProductImage(productId, file) {
   formData.append("product", productId);
   formData.append("image", file);
 
-  const res = await fetch("http://127.0.0.1:8000/api/product-images/", {
+  const res = await fetch(API_BASE + "/product-images/", {
     method: "POST",
     headers: { "X-CSRFToken": csrfToken },
     credentials: "include",
@@ -179,16 +176,13 @@ export async function deleteProductImage(imageId) {
     .find((r) => r.startsWith("csrftoken="))
     ?.split("=")[1];
 
-  const res = await fetch(
-    `http://127.0.0.1:8000/api/product-images/${imageId}/`,
-    {
-      method: "DELETE",
-      headers: {
-        "X-CSRFToken": csrfToken,
-      },
-      credentials: "include",
-    }
-  );
+  const res = await fetch(API_BASE + `/product-images/${imageId}/`, {
+    method: "DELETE",
+    headers: {
+      "X-CSRFToken": csrfToken,
+    },
+    credentials: "include",
+  });
 
   if (!res.ok) throw new Error("Failed to delete product image");
   return res.json().catch(() => ({})); // handle empty 204 response
@@ -231,15 +225,12 @@ export async function uploadCategoryImage(categoryId, file) {
   const formData = new FormData();
   formData.append("image", file);
 
-  const res = await fetch(
-    `http://127.0.0.1:8000/api/categories/${categoryId}/`,
-    {
-      method: "PATCH",
-      headers: { "X-CSRFToken": csrfToken },
-      credentials: "include",
-      body: formData,
-    }
-  );
+  const res = await fetch(API_BASE + `/categories/${categoryId}/`, {
+    method: "PATCH",
+    headers: { "X-CSRFToken": csrfToken },
+    credentials: "include",
+    body: formData,
+  });
 
   if (!res.ok) throw new Error("Failed to upload category image");
   return res.json();
@@ -253,7 +244,7 @@ export async function deleteCategoryImage(categoryId) {
     ?.split("=")[1];
 
   const res = await fetch(
-    `http://127.0.0.1:8000/api/categories/${categoryId}/delete-image/`,
+    API_BASE + `/categories/${categoryId}/delete-image/`,
     {
       method: "DELETE",
       headers: { "X-CSRFToken": csrfToken },
