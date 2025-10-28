@@ -1,7 +1,6 @@
 import axios from "axios";
 
 export const API_BASE = import.meta.env.VITE_API_URL;
-// export const API_BASE = "http://127.0.0.1:8000/api";
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -11,9 +10,10 @@ function getCookie(name) {
 }
 
 export async function ensureCsrf() {
-  const csrfToken = getCookie("csrftoken");
-  if (!csrfToken) {
-    await fetch(API_BASE + "/users/set-csrf/", {
+  const token = getCookie("csrftoken");
+  if (!token) {
+    console.log("🔐 No CSRF cookie found — fetching one...");
+    await fetch(`${API_BASE}/users/set-csrf/`, {
       credentials: "include",
     });
   }
@@ -25,20 +25,20 @@ export const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-api.interceptors.request.use(async (config) => {
-  const csrfToken = getCookie("csrftoken");
-  if (csrfToken) {
-    config.headers["X-CSRFToken"] = csrfToken;
-  } else {
-    // fallback: ensure one is set
-    await fetch(API_BASE + "/users/set-csrf/", {
-      credentials: "include",
-    });
-    const newToken = getCookie("csrftoken");
-    if (newToken) config.headers["X-CSRFToken"] = newToken;
-  }
-  return config;
-});
+api.interceptors.request.use(
+  async (config) => {
+    await ensureCsrf(); // make sure CSRF cookie exists first
+
+    const token = getCookie("csrftoken");
+    console.log("📦 Attaching X-CSRFToken header:", token);
+
+    if (token) config.headers["X-CSRFToken"] = token;
+    else console.warn("⚠️ No CSRF token found at request time!");
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // --- DASHBOARD ---
 export const getDashboardStats = async () => {
