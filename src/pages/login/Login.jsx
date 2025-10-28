@@ -3,9 +3,10 @@ import { Form, Button } from "react-bootstrap";
 import AuthCard from "../../Components/authcard/AuthCard";
 
 // const backendUrl = "http://127.0.0.1:8000";
-const backendUrl = process.env.REACT_APP_API_URL_SHORT;
+const backendUrl = process.env.REACT_APP_API_URL;
 
-const googleLoginUrl = `${backendUrl}/accounts/google/login/`;
+const googleLoginUrl =
+  process.env.REACT_APP_API_URL_SHORT + `/accounts/google/login/`;
 
 const Login = () => {
   const [email, setEmail] = useState("");
