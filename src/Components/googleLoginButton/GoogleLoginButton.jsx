@@ -5,7 +5,8 @@ const GoogleLoginButton = () => {
 
   const handleGoogleLogin = () => {
     // Redirect user to your Django backend's Google login endpoint
-    window.location.href = backendUrl + "/accounts/google/login/";
+    // window.location.href = backendUrl + "/accounts/google/login/";
+    window.location.href = backendUrl + "/test/google/login/";
   };
 
   return (
