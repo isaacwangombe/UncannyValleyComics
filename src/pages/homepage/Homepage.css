@@ -15,7 +15,7 @@
 
 .tab-content-wrapper {
   position: relative;
-  min-height: 400px; /* adjust to tallest content */
+  min-height: 450px; /* adjust to tallest content */
 }
 
 .fade-tab {
@@ -35,4 +35,9 @@
 
 .trending-now {
   background-color: rgb(238, 238, 238);
+}
+
+.multicarousel-btn {
+  margin-left: 60px;
+  margin-top: 15px;
 }

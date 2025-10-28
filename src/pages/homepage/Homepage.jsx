@@ -63,7 +63,7 @@ const Homepage = () => {
       {/* Trending Now Section */}
       <div
         className="px-3 py-4 mx-3 mx-md-5 mx-lg-9 trending-now rounded-4"
-        style={{ minHeight: "700px", position: "relative" }}
+        style={{ minHeight: "750px", position: "relative" }}
       >
         <h1 className="mona-sans-base fs-1 mx-5 my-3">
           Trending <span className="mona-sans-italic">Now</span>
@@ -91,7 +91,7 @@ const Homepage = () => {
             <Button
               variant="dark"
               size="lg"
-              className="btn-wide"
+              className="btn-wide multicarousel-btn"
               onClick={() => goToCategory("comics")}
             >
               View all
@@ -102,7 +102,7 @@ const Homepage = () => {
             <Button
               variant="dark"
               size="lg"
-              className="btn-wide"
+              className="btn-wide multicarousel-btn"
               onClick={() => goToCategory("merch")}
             >
               View all
@@ -143,7 +143,7 @@ const Homepage = () => {
             <Button
               variant="dark"
               size="lg"
-              className="btn-wide"
+              className=" btn-wide multicarousel-btn"
               onClick={() => goToCategory("events")}
             >
               View all

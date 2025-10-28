@@ -3,6 +3,7 @@ import Carousel from "react-multi-carousel";
 import "react-multi-carousel/lib/styles.css";
 import CardHover from "../cardHover/CardHover";
 import "./MultiCarousel.css";
+import Button from "react-bootstrap/Button";
 
 export const MultiCarousel = ({ products = [] }) => {
   const responsive = {
