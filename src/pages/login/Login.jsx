@@ -3,7 +3,7 @@ import { Form, Button } from "react-bootstrap";
 import AuthCard from "../../Components/authcard/AuthCard";
 
 const backendUrl = process.env.REACT_APP_API_URL_SHORT;
-const googleLoginUrl = `${backendUrl}/test/google/login/`;
+const googleLoginUrl = `${backendUrl}/test2/google/login/`;
 // const googleLoginUrl = `${backendUrl}/accounts/google/login/`;
 
 const Login = () => {
