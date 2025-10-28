@@ -171,6 +171,8 @@ export async function uploadProductImage(productId, file) {
 }
 
 export async function deleteProductImage(imageId) {
+  await ensureCsrf();
+
   const csrfToken = document.cookie
     .split("; ")
     .find((r) => r.startsWith("csrftoken="))
@@ -193,6 +195,8 @@ export async function deleteProductImage(imageId) {
 export const getCategories = async () => (await api.get("/categories/")).data;
 
 export const createCategory = async (data) => {
+  await ensureCsrf();
+
   const csrfToken = getCookie("csrftoken");
   const res = await api.post("/categories/", data, {
     headers: { "X-CSRFToken": csrfToken },
@@ -201,6 +205,8 @@ export const createCategory = async (data) => {
 };
 
 export const updateCategory = async (id, data) => {
+  await ensureCsrf();
+
   const csrfToken = getCookie("csrftoken");
   const res = await api.put(`/categories/${id}/`, data, {
     headers: { "X-CSRFToken": csrfToken },
@@ -209,6 +215,8 @@ export const updateCategory = async (id, data) => {
 };
 
 export const deleteCategory = async (id) => {
+  await ensureCsrf();
+
   const csrfToken = getCookie("csrftoken");
   const res = await api.delete(`/categories/${id}/`, {
     headers: { "X-CSRFToken": csrfToken },
@@ -217,6 +225,8 @@ export const deleteCategory = async (id) => {
 };
 
 export async function uploadCategoryImage(categoryId, file) {
+  await ensureCsrf();
+
   const csrfToken = document.cookie
     .split("; ")
     .find((r) => r.startsWith("csrftoken="))
@@ -238,6 +248,8 @@ export async function uploadCategoryImage(categoryId, file) {
 
 // --- CATEGORY IMAGES ---
 export async function deleteCategoryImage(categoryId) {
+  await ensureCsrf();
+
   const csrfToken = document.cookie
     .split("; ")
     .find((r) => r.startsWith("csrftoken="))
@@ -285,6 +297,8 @@ export const toggleStaff = async (id) => {
 };
 
 export const promoteToOwner = async (id) => {
+  await ensureCsrf();
+
   const csrfToken = getCookie("csrftoken");
   console.log("🔐 Sending promote_to_owner request with CSRF:", csrfToken);
 
