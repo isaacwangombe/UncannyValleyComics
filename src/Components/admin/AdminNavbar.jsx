@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Navbar, Container, Spinner, Button, Nav } from "react-bootstrap";
 
-const API_BASE = process.env.REACT_APP_API_URL;
-const FRONTEND_URL = process.env.FRONTEND_URL;
+const API_BASE = import.meta.env.VITE_API_URL;
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
 const AdminNavbar = () => {
   const [user, setUser] = useState(null);

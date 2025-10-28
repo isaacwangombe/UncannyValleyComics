@@ -4,7 +4,7 @@ import axios from "axios";
 export default function AuthCallback() {
   // const backendUrl = "http://127.0.0.1:8000";
 
-  const backendUrl = process.env.VITE_API_URL_SHORT;
+  const backendUrl = import.meta.env.VITE_API_URL_SHORT;
 
   useEffect(() => {
     axios

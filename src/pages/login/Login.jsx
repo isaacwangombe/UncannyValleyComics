@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Form, Button } from "react-bootstrap";
 import AuthCard from "../../Components/authcard/AuthCard";
 
-const backendUrl = process.env.VITE_API_URL_SHORT;
+const backendUrl = import.meta.env.VITE_API_URL_SHORT;
 const googleLoginUrl = `${backendUrl}/accounts/google/login/`;
 
 const Login = () => {

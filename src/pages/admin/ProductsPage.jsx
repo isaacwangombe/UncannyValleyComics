@@ -61,7 +61,7 @@ const ProductsAdminPage = () => {
     is_active: true,
   });
 
-  const backendUrl = process.env.VITE_API_URL_SHORT;
+  const backendUrl = import.meta.env.VITE_API_URL_SHORT;
 
   useEffect(() => {
     loadData();
