@@ -6,7 +6,7 @@ import { useCart } from "../../contexts/CartContext";
 const CardHover = ({ product }) => {
   const imageUrl =
     product?.images?.[0]?.image || "https://via.placeholder.com/400";
-  const price = product?.price ? `$${product.price}` : "";
+  const price = product?.price ? `Kes ${product.price}` : "";
   const { addItem } = useCart();
 
   const [adding, setAdding] = useState(false);
@@ -36,14 +36,14 @@ const CardHover = ({ product }) => {
       <div className="details">
         <div className="center">
           <h1>{product.title}</h1>
-          <p>{product.description?.slice(0, 100)}...</p>
+          <p>{product.description?.slice(0, 500)}...</p>
           <p>{price}</p>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <Button
               variant="dark"
               size="lg"
-              className="btn-wide"
+              className="btn-trending"
               onClick={handleAddToCart}
               disabled={adding}
             >
