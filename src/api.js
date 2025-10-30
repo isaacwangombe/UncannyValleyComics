@@ -17,12 +17,6 @@ export async function ensureCsrfToken() {
   });
 }
 
-// Use your full backend URL in production
-const BACKEND_BASE =
-  import.meta.env.MODE === "production"
-    ? import.meta.env.VITE_API_URL_SHORT
-    : "http://127.0.0.1:8000";
-
 // Extract CSRF token from cookies
 function getCsrfToken() {
   const match = document.cookie.match(/csrftoken=([^;]+)/);
@@ -226,6 +220,7 @@ export async function apiGoogleLoginRedirect() {
   const url = `${BACKEND_BASE}/accounts/google/login/?process=login`;
   console.log("🔗 Redirecting to Google login:", url);
   window.location.href = url;
+  s;
 }
 
 // Fetch current user (used by AuthCallback)
