@@ -1,9 +1,8 @@
+// src/pages/login/Login.jsx
 import React, { useState, useEffect } from "react";
 import { Form, Button } from "react-bootstrap";
 import AuthCard from "../../Components/authcard/AuthCard";
-
-const backendUrl = import.meta.env.VITE_API_URL_SHORT;
-const googleLoginUrl = `${backendUrl}/accounts/google/login/`;
+import { apiLogin, apiGoogleLoginRedirect, ensureCsrfToken } from "../../api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -11,61 +10,32 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ✅ 1. Fetch CSRF cookie on load
+  // ✅ Ensure CSRF cookie exists
   useEffect(() => {
-    fetch(`${backendUrl}/api/users/set-csrf/`, {
-      credentials: "include",
-    }).then(() => console.log("CSRF cookie set."));
+    ensureCsrfToken().then(() => console.log("CSRF cookie ensured."));
   }, []);
 
-  const getCookie = (name) => {
-    const cookie = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(name + "="));
-    return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
-  };
-
-  // ✅ 2. Normal email/password login
+  // ✅ Normal email/password login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const csrfToken = getCookie("csrftoken");
-
     try {
-      const res = await fetch(`${backendUrl}/api/auth/login/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": csrfToken,
-        },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.non_field_errors?.[0] || "Login failed");
-      }
-
-      const data = await res.json();
+      const data = await apiLogin(email, password);
       console.log("✅ Logged in:", data);
       window.location.href = "/admin";
     } catch (err) {
-      console.error(err);
+      console.error("❌ Login error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ 3. Google login via redirect (NOT fetch)
+  // ✅ Google login redirect
   const handleGoogleLogin = async () => {
-    await fetch(`${backendUrl}/api/users/set-csrf/`, {
-      credentials: "include",
-    });
-    window.location.href = `${googleLoginUrl}?process=login`;
+    await apiGoogleLoginRedirect();
   };
 
   return (

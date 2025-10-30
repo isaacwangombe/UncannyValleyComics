@@ -1,42 +1,25 @@
 // src/components/admin/AdminNavbar.jsx
 import React, { useEffect, useState } from "react";
 import { Navbar, Container, Spinner, Button, Nav } from "react-bootstrap";
+import { fetchCurrentUser, logoutUser } from "../../api";
 
-const API_BASE = import.meta.env.VITE_API_URL;
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
 const AdminNavbar = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch logged-in user info from Django
   useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch(`${API_BASE}/auth/user/`, {
-          credentials: "include", // send session cookie
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Failed to load user:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchUser();
+    (async () => {
+      const currentUser = await fetchCurrentUser();
+      setUser(currentUser);
+      setLoading(false);
+    })();
   }, []);
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout/`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await logoutUser();
       setUser(null);
       window.location.href = FRONTEND_URL + "/login";
     } catch (err) {

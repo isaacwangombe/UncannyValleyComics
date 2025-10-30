@@ -1,6 +1,5 @@
 // src/api.js
 const API_BASE = import.meta.env.VITE_API_URL;
-// const API_BASE = "http://127.0.0.1:8000/api";
 
 /* ------------------------------------------
    🧩 Helpers for CSRF + authenticated requests
@@ -19,7 +18,7 @@ function getCsrfToken() {
   return match ? match[1] : null;
 }
 
-// Wrapper for any POST/PUT/DELETE that adds CSRF header
+// Wrapper for any request that needs CSRF
 async function csrfFetch(url, options = {}) {
   await ensureCsrfToken();
   const csrftoken = getCsrfToken();
@@ -41,6 +40,48 @@ async function csrfFetch(url, options = {}) {
     throw new Error(`Request failed (${res.status}): ${text}`);
   }
   return await res.json();
+}
+
+/* ------------------------------------------
+   👤 Auth APIs
+------------------------------------------ */
+
+// Fetch the currently logged-in user (session-based)
+export async function fetchCurrentUser() {
+  await ensureCsrfToken();
+
+  const csrftoken = getCsrfToken();
+  const res = await fetch(`${API_BASE}/auth/user/`, {
+    method: "GET",
+    credentials: "include",
+    headers: {
+      "X-CSRFToken": csrftoken,
+    },
+  });
+
+  if (res.ok) {
+    return await res.json();
+  } else {
+    console.warn("⚠️ Not authenticated:", res.status);
+    return null;
+  }
+}
+
+// Logout the user (session-based)
+export async function logoutUser() {
+  await ensureCsrfToken();
+
+  const csrftoken = getCsrfToken();
+  const res = await fetch(`${API_BASE}/auth/logout/`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "X-CSRFToken": csrftoken,
+    },
+  });
+
+  if (!res.ok) throw new Error("Logout failed");
+  return true;
 }
 
 /* ------------------------------------------
@@ -106,19 +147,9 @@ export async function fetchProducts({
 } = {}) {
   try {
     let url = `${API_BASE}/products/?page=${page}`;
-
-    // If subcategory is provided → filter directly
-    if (subcategory) {
-      url += `&category=${subcategory}`;
-    }
-    // If parent category → filter by category__parent
-    else if (category) {
-      url += `&category__parent=${category}`;
-    }
-
-    if (q) {
-      url += `&search=${encodeURIComponent(q)}`;
-    }
+    if (subcategory) url += `&category=${subcategory}`;
+    else if (category) url += `&category__parent=${category}`;
+    if (q) url += `&search=${encodeURIComponent(q)}`;
 
     const res = await fetch(url);
     if (!res.ok) throw new Error("Failed to fetch products");
@@ -131,9 +162,7 @@ export async function fetchProducts({
 
 export async function fetchTrendingProducts(parentSlug = null) {
   let url = `${API_BASE}/products/?trending=true`;
-  if (parentSlug) {
-    url += `&category__parent__slug=${parentSlug}`;
-  }
+  if (parentSlug) url += `&category__parent__slug=${parentSlug}`;
 
   console.log("🔗 Fetching:", url);
   const res = await fetch(url);
@@ -141,4 +170,63 @@ export async function fetchTrendingProducts(parentSlug = null) {
 
   if (!res.ok) throw new Error("Failed to fetch trending products");
   return data;
+}
+
+/* ------------------------------------------
+   🔐 Authentication APIs (Login, Logout, Google)
+------------------------------------------ */
+
+// Get CSRF token (reusable)
+function getCookie(name) {
+  const cookie = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(name + "="));
+  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
+}
+
+// Email/password login
+export async function apiLogin(email, password) {
+  await ensureCsrfToken();
+
+  const csrfToken = getCookie("csrftoken");
+
+  const res = await fetch(`${API_BASE.replace("/api", "")}/api/auth/login/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken,
+    },
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.non_field_errors?.[0] || "Login failed");
+  }
+
+  return await res.json();
+}
+
+// Google login redirect
+export async function apiGoogleLoginRedirect() {
+  await ensureCsrfToken();
+  const backendUrl = API_BASE.replace("/api", "");
+  window.location.href = `${backendUrl}/accounts/google/login/?process=login`;
+}
+
+// Fetch current user (used by AuthCallback)
+export async function apiGetUser() {
+  const backendUrl = API_BASE.replace("/api", "");
+
+  const res = await fetch(`${backendUrl}/dj-rest-auth/user/`, {
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    console.warn("❌ Failed to fetch user:", res.status);
+    return null;
+  }
+
+  return await res.json();
 }
