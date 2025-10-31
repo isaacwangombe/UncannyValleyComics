@@ -83,19 +83,30 @@ export async function fetchCurrentUser() {
 
 // Logout the user (session-based)
 export async function logoutUser() {
+  // Ensure CSRF token exists
   await ensureCsrf();
 
-  const csrftoken = getCsrfToken();
+  const csrfToken = document.cookie
+    .split("; ")
+    .find((r) => r.startsWith("csrftoken="))
+    ?.split("=")[1];
+
   const res = await fetch(`${API_BASE}/auth/logout/`, {
     method: "POST",
     credentials: "include",
     headers: {
-      "X-CSRFToken": csrftoken,
+      "X-CSRFToken": csrfToken,
+      "Content-Type": "application/json",
     },
   });
 
-  if (!res.ok) throw new Error("Logout failed");
-  return true;
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Logout failed: ${res.status} - ${txt}`);
+  }
+
+  console.log("✅ Logged out successfully");
+  return res.json();
 }
 
 /* ------------------------------------------
