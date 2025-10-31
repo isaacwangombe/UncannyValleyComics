@@ -2,63 +2,24 @@ import axios from "axios";
 
 export const API_BASE = import.meta.env.VITE_API_URL;
 
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
-  return null;
-}
-
-export async function ensureCsrf() {
-  const token = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
-  if (!token) {
-    console.log("🔐 No CSRF cookie found — fetching one...");
-    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
-      credentials: "include",
-    });
-    if (res.ok) console.log("✅ CSRF cookie set successfully");
-    else console.error("❌ Failed to fetch CSRF token:", res.status);
-  }
-}
-
+// ✅ Create axios instance with cookies enabled
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
 
-api.interceptors.request.use(
-  async (config) => {
-    await ensureCsrf(); // make sure CSRF cookie exists first
-
-    const token = getCookie("csrftoken");
-    console.log("📦 Attaching X-CSRFToken header:", token);
-
-    if (token) config.headers["X-CSRFToken"] = token;
-    else console.warn("⚠️ No CSRF token found at request time!");
-
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
 // --- DASHBOARD ---
-export const getDashboardStats = async () => {
-  const res = await api.get("/admin/analytics/stats/");
-  return res.data;
-};
+export const getDashboardStats = async () =>
+  (await api.get("/admin/analytics/stats/")).data;
 export const getDailySales = async () =>
   (await api.get("/admin/analytics/daily_sales/")).data;
-
 export const getMonthlySales = async () =>
   (await api.get("/admin/analytics/monthly_sales/")).data;
-
 export const getSalesOverTime = async () =>
   (await api.get("/admin/analytics/sales_over_time/")).data;
-
 export const getNewUsers = async () =>
   (await api.get("/admin/analytics/new_users/")).data;
-
 export const getTopProducts = async () =>
   (await api.get("/admin/analytics/top_products/")).data;
 
@@ -73,60 +34,36 @@ export const deleteProduct = async (id) =>
 
 // Add or edit product
 export async function apiEditProduct(id, data) {
-  const csrfToken = getCookie("csrftoken");
-
-  const res = await fetch(API_BASE + `/products/${id}/`, {
+  const res = await fetch(`${API_BASE}/products/${id}/`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken, // 👈 include this
-    },
     credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
   if (!res.ok) throw new Error("Failed to update product");
   return res.json();
 }
 
 export async function apiAddProduct(data) {
-  const csrfToken = getCookie("csrftoken");
-
-  const res = await fetch(API_BASE + `/products/`, {
+  const res = await fetch(`${API_BASE}/products/`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken, // 👈 include this too
-    },
     credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
   if (!res.ok) throw new Error("Failed to add product");
   return res.json();
 }
 
-// --- BULK UPLOAD PRODUCTS (Excel + optional ZIP) ---
+// --- BULK UPLOAD PRODUCTS ---
 export async function bulkUploadProducts(excelFile, zipFile = null) {
-  // ✅ Fetch CSRF token from cookie
-  const csrfToken = document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1];
-
   const formData = new FormData();
   formData.append("excel_file", excelFile);
-  if (zipFile) {
-    formData.append("images_zip", zipFile);
-  }
+  if (zipFile) formData.append("images_zip", zipFile);
 
-  // ✅ Include CSRF token header
-  const res = await fetch(API_BASE + "/products/bulk-upload/", {
+  const res = await fetch(`${API_BASE}/products/bulk-upload/`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "X-CSRFToken": csrfToken,
-    },
     body: formData,
   });
 
@@ -136,34 +73,21 @@ export async function bulkUploadProducts(excelFile, zipFile = null) {
 }
 
 export const toggleProductTrending = async (id) => {
-  const csrfToken = document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1];
-
-  const res = await fetch(API_BASE + `/products/${id}/toggle_trending/`, {
+  const res = await fetch(`${API_BASE}/products/${id}/toggle_trending/`, {
     method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
     credentials: "include",
   });
-
   if (!res.ok) throw new Error("Failed to toggle trending");
   return res.json();
 };
 
 export async function uploadProductImage(productId, file) {
-  const csrfToken = document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1];
-
   const formData = new FormData();
   formData.append("product", productId);
   formData.append("image", file);
 
-  const res = await fetch(API_BASE + "/product-images/", {
+  const res = await fetch(`${API_BASE}/product-images/`, {
     method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
     credentials: "include",
     body: formData,
   });
@@ -173,73 +97,30 @@ export async function uploadProductImage(productId, file) {
 }
 
 export async function deleteProductImage(imageId) {
-  await ensureCsrf();
-
-  const csrfToken = document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1];
-
-  const res = await fetch(API_BASE + `/product-images/${imageId}/`, {
+  const res = await fetch(`${API_BASE}/product-images/${imageId}/`, {
     method: "DELETE",
-    headers: {
-      "X-CSRFToken": csrfToken,
-    },
     credentials: "include",
   });
 
   if (!res.ok) throw new Error("Failed to delete product image");
-  return res.json().catch(() => ({})); // handle empty 204 response
+  return res.json().catch(() => ({}));
 }
 
 // --- CATEGORIES ---
-// --- CATEGORIES ---
 export const getCategories = async () => (await api.get("/categories/")).data;
-
-export const createCategory = async (data) => {
-  await ensureCsrf();
-
-  const csrfToken = getCookie("csrftoken");
-  const res = await api.post("/categories/", data, {
-    headers: { "X-CSRFToken": csrfToken },
-  });
-  return res.data;
-};
-
-export const updateCategory = async (id, data) => {
-  await ensureCsrf();
-
-  const csrfToken = getCookie("csrftoken");
-  const res = await api.put(`/categories/${id}/`, data, {
-    headers: { "X-CSRFToken": csrfToken },
-  });
-  return res.data;
-};
-
-export const deleteCategory = async (id) => {
-  await ensureCsrf();
-
-  const csrfToken = getCookie("csrftoken");
-  const res = await api.delete(`/categories/${id}/`, {
-    headers: { "X-CSRFToken": csrfToken },
-  });
-  return res.data;
-};
+export const createCategory = async (data) =>
+  (await api.post("/categories/", data)).data;
+export const updateCategory = async (id, data) =>
+  (await api.put(`/categories/${id}/`, data)).data;
+export const deleteCategory = async (id) =>
+  (await api.delete(`/categories/${id}/`)).data;
 
 export async function uploadCategoryImage(categoryId, file) {
-  await ensureCsrf();
-
-  const csrfToken = document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1];
-
   const formData = new FormData();
   formData.append("image", file);
 
-  const res = await fetch(API_BASE + `/categories/${categoryId}/`, {
+  const res = await fetch(`${API_BASE}/categories/${categoryId}/`, {
     method: "PATCH",
-    headers: { "X-CSRFToken": csrfToken },
     credentials: "include",
     body: formData,
   });
@@ -248,20 +129,11 @@ export async function uploadCategoryImage(categoryId, file) {
   return res.json();
 }
 
-// --- CATEGORY IMAGES ---
 export async function deleteCategoryImage(categoryId) {
-  await ensureCsrf();
-
-  const csrfToken = document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1];
-
   const res = await fetch(
-    API_BASE + `/categories/${categoryId}/delete-image/`,
+    `${API_BASE}/categories/${categoryId}/delete-image/`,
     {
       method: "DELETE",
-      headers: { "X-CSRFToken": csrfToken },
       credentials: "include",
     }
   );
@@ -275,7 +147,6 @@ export async function deleteCategoryImage(categoryId) {
 
   const text = await res.text();
   if (!text) return { detail: "Image deleted successfully" };
-
   try {
     return JSON.parse(text);
   } catch {
@@ -284,36 +155,8 @@ export async function deleteCategoryImage(categoryId) {
 }
 
 // --- USERS ---
-// --- USERS ---
 export const getUsers = async () => (await api.get("/admin/users/")).data;
-
-export const toggleStaff = async (id) => {
-  await ensureCsrf();
-  const csrfToken = getCookie("csrftoken");
-  const res = await api.post(
-    `/admin/users/${id}/toggle_staff/`,
-    {},
-    { headers: { "X-CSRFToken": csrfToken } }
-  );
-  return res.data;
-};
-
-export const promoteToOwner = async (id) => {
-  await ensureCsrf();
-
-  const csrfToken = getCookie("csrftoken");
-  console.log("🔐 Sending promote_to_owner request with CSRF:", csrfToken);
-
-  const res = await api.post(
-    `/admin/users/${id}/promote_to_owner/`,
-    {},
-    {
-      headers: {
-        "X-CSRFToken": csrfToken,
-      },
-      withCredentials: true,
-    }
-  );
-
-  return res.data;
-};
+export const toggleStaff = async (id) =>
+  (await api.post(`/admin/users/${id}/toggle_staff/`, {})).data;
+export const promoteToOwner = async (id) =>
+  (await api.post(`/admin/users/${id}/promote_to_owner/`, {})).data;
