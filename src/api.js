@@ -20,6 +20,7 @@ export async function ensureCsrf() {
     const res = await fetch(`${API_BASE}/users/set-csrf/`, {
       credentials: "include",
     });
+    document.cookie;
     if (res.ok) console.log("✅ CSRF cookie set successfully");
     else console.error("❌ Failed to fetch CSRF token:", res.status);
   }
