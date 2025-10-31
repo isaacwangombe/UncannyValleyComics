@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Form, Button } from "react-bootstrap";
 import AuthCard from "../../Components/authcard/AuthCard";
-import { apiLogin, apiGoogleLoginRedirect, ensureCsrfToken } from "../../api";
+import { apiLogin, apiGoogleLoginRedirect, ensureCsrf } from "../../api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -12,7 +12,7 @@ const Login = () => {
 
   // ✅ Ensure CSRF cookie exists
   useEffect(() => {
-    ensureCsrfToken().then(() => console.log("CSRF cookie ensured."));
+    ensureCsrf().then(() => console.log("CSRF cookie ensured."));
   }, []);
 
   // ✅ Normal email/password login

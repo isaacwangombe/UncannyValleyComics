@@ -17,11 +17,11 @@ import Footer from "./Components/footer/Footer";
 import CartDrawer from "./Components/cartDrawer/CartDrawer";
 
 import { CartProvider, useCart } from "./contexts/CartContext";
-import { ensureCsrfToken } from "./api";
+import { ensureCsrf } from "./api";
 
 function App() {
   useEffect(() => {
-    ensureCsrfToken();
+    ensureCsrf();
   }, []);
 
   return (

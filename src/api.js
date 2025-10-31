@@ -11,10 +11,18 @@ export const API_BASE = `${BACKEND_BASE}/api`;
 ------------------------------------------ */
 
 // Fetch CSRF cookie if not already present
-export async function ensureCsrfToken() {
-  await fetch(`${API_BASE}/users/set-csrf/`, {
-    credentials: "include", // ensures cookie is stored
-  });
+// ✅ Unified CSRF helper
+
+export async function ensureCsrf() {
+  const token = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+  if (!token) {
+    console.log("🔐 No CSRF cookie found — fetching one...");
+    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
+      credentials: "include",
+    });
+    if (res.ok) console.log("✅ CSRF cookie set successfully");
+    else console.error("❌ Failed to fetch CSRF token:", res.status);
+  }
 }
 
 // Extract CSRF token from cookies
@@ -25,7 +33,7 @@ function getCsrfToken() {
 
 // Wrapper for any request that needs CSRF
 async function csrfFetch(url, options = {}) {
-  await ensureCsrfToken();
+  await ensureCsrf();
   const csrftoken = getCsrfToken();
 
   const opts = {
@@ -53,7 +61,7 @@ async function csrfFetch(url, options = {}) {
 
 // Fetch the currently logged-in user (session-based)
 export async function fetchCurrentUser() {
-  await ensureCsrfToken();
+  await ensureCsrf();
 
   const csrftoken = getCsrfToken();
   const res = await fetch(`${API_BASE}/auth/user/`, {
@@ -74,7 +82,7 @@ export async function fetchCurrentUser() {
 
 // Logout the user (session-based)
 export async function logoutUser() {
-  await ensureCsrfToken();
+  await ensureCsrf();
 
   const csrftoken = getCsrfToken();
   const res = await fetch(`${API_BASE}/auth/logout/`, {
@@ -191,7 +199,7 @@ function getCookie(name) {
 
 // Email/password login
 export async function apiLogin(email, password) {
-  await ensureCsrfToken();
+  await ensureCsrf();
 
   const csrfToken = getCookie("csrftoken");
 
@@ -215,7 +223,7 @@ export async function apiLogin(email, password) {
 
 // Google login redirect
 export async function apiGoogleLoginRedirect() {
-  await ensureCsrfToken();
+  await ensureCsrf();
 
   const url = `${BACKEND_BASE}/accounts/google/login/?process=login`;
   console.log("🔗 Redirecting to Google login:", url);

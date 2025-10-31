@@ -10,12 +10,14 @@ function getCookie(name) {
 }
 
 export async function ensureCsrf() {
-  const token = getCookie("csrftoken");
+  const token = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
   if (!token) {
     console.log("🔐 No CSRF cookie found — fetching one...");
-    await fetch(`${API_BASE}/users/set-csrf/`, {
+    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
       credentials: "include",
     });
+    if (res.ok) console.log("✅ CSRF cookie set successfully");
+    else console.error("❌ Failed to fetch CSRF token:", res.status);
   }
 }
 
