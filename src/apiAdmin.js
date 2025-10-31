@@ -1,6 +1,12 @@
 import axios from "axios";
 
-export const API_BASE = import.meta.env.VITE_API_URL;
+// export const API_BASE = import.meta.env.VITE_API_URL;
+export const BACKEND_BASE =
+  import.meta.env.MODE === "production"
+    ? "https://uncanny-valley-comics-backend.onrender.com"
+    : "http://127.0.0.1:8000";
+
+export const API_BASE = `${BACKEND_BASE}/api`;
 
 // ✅ Create axios instance with cookies enabled
 export const api = axios.create({
