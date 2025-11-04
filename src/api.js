@@ -247,7 +247,8 @@ export async function apiGoogleLoginRedirect() {
 }
 
 export function completeGoogleLogin(access, refresh) {
-  saveTokens({ access, refresh });
+  localStorage.setItem("access_token", access);
+  localStorage.setItem("refresh_token", refresh);
   console.log("✅ Google login successful, tokens saved");
   window.location.href = "/";
 }

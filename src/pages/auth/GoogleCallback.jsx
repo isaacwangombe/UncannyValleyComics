@@ -1,3 +1,4 @@
+// src/pages/auth/GoogleCallback.jsx
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { completeGoogleLogin } from "../../api";
