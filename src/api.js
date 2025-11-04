@@ -14,16 +14,19 @@ export const API_BASE = `${BACKEND_BASE}/api`;
 // ✅ Unified CSRF helper
 
 export async function ensureCsrf() {
-  const token = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+  let token = getCookie("csrftoken");
+
   if (!token) {
-    console.log("🔐 No CSRF cookie found — fetching one...");
-    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
+    console.log("🔄 No CSRF token found, requesting from backend...");
+    const res = await fetch(`${API_BASE}/get-csrf/`, {
       credentials: "include",
     });
-    document.cookie;
-    if (res.ok) console.log("✅ CSRF cookie set successfully");
-    else console.error("❌ Failed to fetch CSRF token:", res.status);
+    const data = await res.json();
+    token = data.csrftoken;
+    console.log("✅ CSRF fetched from backend:", token);
   }
+
+  return token;
 }
 
 // Extract CSRF token from cookies
@@ -83,6 +86,8 @@ export async function fetchCurrentUser() {
 
 // Logout the user (session-based)
 export async function logoutUser() {
+  await ensureCsrf();
+
   console.log("🔄 Ensuring CSRF token is up-to-date...");
 
   // 1️⃣ Ask backend to refresh/set cookie — crucial for cross-site
