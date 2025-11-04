@@ -1,8 +1,8 @@
 // src/pages/login/Login.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Form, Button } from "react-bootstrap";
 import AuthCard from "../../Components/authcard/AuthCard";
-import { apiLogin, apiGoogleLoginRedirect, ensureCsrf } from "../../api";
+import { apiLogin, apiGoogleLoginRedirect } from "../../api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,12 +10,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ✅ Ensure CSRF cookie exists
-  useEffect(() => {
-    ensureCsrf().then(() => console.log("CSRF cookie ensured."));
-  }, []);
-
-  // ✅ Normal email/password login
+  // ✅ Normal email/password login (JWT-based)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -24,10 +19,15 @@ const Login = () => {
     try {
       const data = await apiLogin(email, password);
       console.log("✅ Logged in:", data);
+
+      // Optionally store user info (not required)
+      localStorage.setItem("user", JSON.stringify(data.user || {}));
+
+      // Redirect to admin dashboard or home
       window.location.href = "/admin";
     } catch (err) {
       console.error("❌ Login error:", err);
-      setError(err.message);
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
