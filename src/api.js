@@ -89,7 +89,6 @@ export async function apiFetch(endpoint, options = {}) {
     throw new Error(`Request failed (${res.status}): ${text}`);
   }
 
-  // handle empty 204 response
   if (res.status === 204) return {};
   return res.json();
 }
@@ -98,9 +97,9 @@ export async function apiFetch(endpoint, options = {}) {
    👤 AUTHENTICATION ENDPOINTS
 ========================================================== */
 
-// ✅ Login — now points to SimpleJWT endpoint
+// ✅ Login (JWT)
 export async function loginUser(email, password) {
-  const res = await fetch(`${API_BASE}/token/`, {
+  const res = await fetch(`${API_BASE}/auth/token/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username: email, password }),
@@ -114,7 +113,6 @@ export async function loginUser(email, password) {
 
   const data = await res.json();
   saveTokens(data);
-
   console.log("✅ Logged in and tokens saved");
   return data;
 }
@@ -125,11 +123,10 @@ export function logoutUser() {
   window.location.href = "/login";
 }
 
-// ✅ Get current user (protected endpoint)
+// ✅ Get current user
 export async function fetchCurrentUser() {
-  const token = localStorage.getItem("access_token");
+  const token = getAccessToken();
 
-  // ✅ If not logged in, just return null instead of throwing
   if (!token) {
     console.log("⚠️ No token found — user not logged in");
     return null;
@@ -159,7 +156,7 @@ export async function fetchCurrentUser() {
 }
 
 /* ==========================================================
-   🛒 CART API (unchanged names)
+   🛒 CART API
 ========================================================== */
 
 export async function apiGetCart() {
@@ -241,9 +238,16 @@ export async function apiGetOrderDetail(id) {
 }
 
 /* ==========================================================
-   🌐 GOOGLE LOGIN (dj-rest-auth)
+   🌐 GOOGLE LOGIN (JWT version)
 ========================================================== */
+
 export async function apiGoogleLoginRedirect() {
   const url = `${BACKEND_BASE}/accounts/google/login/?process=login`;
   window.location.href = url;
+}
+
+export function completeGoogleLogin(access, refresh) {
+  saveTokens({ access, refresh });
+  console.log("✅ Google login successful, tokens saved");
+  window.location.href = "/";
 }
