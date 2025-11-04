@@ -7,23 +7,23 @@ export const BACKEND_BASE =
 export const API_BASE = `${BACKEND_BASE}/api`;
 
 /* ==========================================================
-   🔐 JWT AUTH HELPERS
+   🔐 AUTHENTICATION HELPERS (same names as before)
 ========================================================== */
 
-export function getAccessToken() {
+function getAccessToken() {
   return localStorage.getItem("access");
 }
 
-export function getRefreshToken() {
+function getRefreshToken() {
   return localStorage.getItem("refresh");
 }
 
-export function saveTokens({ access, refresh }) {
+function saveTokens({ access, refresh }) {
   if (access) localStorage.setItem("access", access);
   if (refresh) localStorage.setItem("refresh", refresh);
 }
 
-export function clearTokens() {
+function clearTokens() {
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
 }
@@ -50,7 +50,7 @@ async function refreshAccessToken() {
   }
 }
 
-// ✅ General-purpose API fetch wrapper
+// ✅ General-purpose fetch wrapper with JWT auth
 export async function apiFetch(endpoint, options = {}) {
   let token = getAccessToken();
 
@@ -60,10 +60,7 @@ export async function apiFetch(endpoint, options = {}) {
     "Content-Type": "application/json",
   };
 
-  let res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
 
   // Try refreshing if unauthorized
   if (res.status === 401 && getRefreshToken()) {
@@ -87,10 +84,10 @@ export async function apiFetch(endpoint, options = {}) {
 }
 
 /* ==========================================================
-   👤 AUTHENTICATION (Login / Logout / Profile)
+   👤 AUTHENTICATION ENDPOINTS (same names preserved)
 ========================================================== */
 
-// Login (email/password)
+// ✅ Login
 export async function apiLogin(email, password) {
   const res = await fetch(`${API_BASE}/auth/token/`, {
     method: "POST",
@@ -108,22 +105,20 @@ export async function apiLogin(email, password) {
   return data;
 }
 
-// Logout
-export function apiLogout() {
+// ✅ Logout
+export function logoutUser() {
   clearTokens();
 }
 
-// Get current user profile
-export async function apiGetUser() {
+// ✅ Get current user
+export async function fetchCurrentUser() {
   return apiFetch("/auth/user/");
 }
 
-// ✅ Backward compatibility alias
-export { apiGetUser as fetchCurrentUser };
-
 /* ==========================================================
-   🛒 CART ENDPOINTS
+   🛒 CART API
 ========================================================== */
+
 export async function apiGetCart() {
   return apiFetch("/cart/");
 }
@@ -164,7 +159,7 @@ export async function apiCartCheckout(data) {
 }
 
 /* ==========================================================
-   🛍️ PRODUCTS & CATEGORIES
+   🛍️ PRODUCT & CATEGORY API
 ========================================================== */
 
 export async function fetchCategories() {
@@ -202,7 +197,7 @@ export async function apiGetOrderDetail(id) {
 }
 
 /* ==========================================================
-   🌐 GOOGLE LOGIN (Optional)
+   🌐 GOOGLE LOGIN
 ========================================================== */
 export async function apiGoogleLoginRedirect() {
   const url = `${BACKEND_BASE}/accounts/google/login/?process=login`;
