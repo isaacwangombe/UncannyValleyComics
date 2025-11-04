@@ -1,95 +1,39 @@
-// src/pages/login/Login.jsx
+// src/pages/Login.jsx
 import React, { useState } from "react";
-import { Form, Button } from "react-bootstrap";
-import AuthCard from "../../Components/authcard/AuthCard";
-import { apiLogin, apiGoogleLoginRedirect } from "../../api";
+import { loginUser } from "../api";
 
-const Login = () => {
-  const [email, setEmail] = useState("");
+export default function Login() {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
-  // ✅ Normal email/password login (JWT-based)
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setError(null);
-    setLoading(true);
-
     try {
-      const data = await apiLogin(email, password);
-      console.log("✅ Logged in:", data);
-
-      // Optionally store user info (not required)
-      localStorage.setItem("user", JSON.stringify(data.user || {}));
-
-      // Redirect to admin dashboard or home
-      window.location.href = "/admin";
+      await loginUser(username, password);
+      window.location.href = "/";
     } catch (err) {
-      console.error("❌ Login error:", err);
-      setError(err.message || "Login failed");
-    } finally {
-      setLoading(false);
+      setError(err.message);
     }
-  };
-
-  // ✅ Google login redirect
-  const handleGoogleLogin = async () => {
-    await apiGoogleLoginRedirect();
-  };
+  }
 
   return (
-    <AuthCard title="Welcome Back">
-      <Form onSubmit={handleSubmit}>
-        {error && <div className="text-danger mb-3">{error}</div>}
-
-        <Form.Group className="mb-3" controlId="email">
-          <Form.Label>Email</Form.Label>
-          <Form.Control
-            type="email"
-            placeholder="Enter email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-4" controlId="password">
-          <Form.Label>Password</Form.Label>
-          <Form.Control
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Button
-          variant="dark"
-          type="submit"
-          className="w-100 mb-3"
-          disabled={loading}
-        >
-          {loading ? "Signing in..." : "Sign In"}
-        </Button>
-
-        <Button
-          variant="outline-dark"
-          className="w-100 d-flex align-items-center justify-content-center"
-          onClick={handleGoogleLogin}
-        >
-          <img
-            src="https://developers.google.com/identity/images/g-logo.png"
-            alt="Google"
-            width="18"
-            className="me-2"
-          />
-          Sign in with Google
-        </Button>
-      </Form>
-    </AuthCard>
+    <form onSubmit={handleSubmit}>
+      <h2>JWT Login</h2>
+      {error && <div style={{ color: "red" }}>{error}</div>}
+      <input
+        type="text"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Username"
+      />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+      />
+      <button type="submit">Login</button>
+    </form>
   );
-};
-
-export default Login;
+}
