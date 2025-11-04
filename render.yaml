@@ -1,17 +1,18 @@
 services:
-  # === Frontend only ===
   - type: web
     name: uncannyvalleycomics
     env: static
     buildCommand: npm run build
     staticPublishPath: dist
+
+    # 👇 force Render to serve static and honor rewrites
+    autoDeploy: true
+
     routes:
-      # ✅ Forward all API requests to your existing backend
       - type: rewrite
         source: /api/*
         destination: https://uncanny-valley-comics-backend.onrender.com/api/:splat
 
-      # ✅ Fallback to index.html for React Router
       - type: rewrite
         source: /*
         destination: /index.html
