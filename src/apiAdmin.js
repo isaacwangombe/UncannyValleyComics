@@ -40,24 +40,25 @@ export const deleteProduct = async (id) =>
 
 // Add or edit product
 export async function apiEditProduct(id, data) {
+  const csrfToken = await ensureCsrf(); // ✅ guaranteed to fetch correct token
+  console.log("🧩 Editing product with CSRF:", csrfToken);
+
   const res = await fetch(`${API_BASE}/products/${id}/`, {
     method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken,
+    },
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to update product");
-  return res.json();
-}
 
-export async function apiAddProduct(data) {
-  const res = await fetch(`${API_BASE}/products/`, {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to add product");
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("❌ Edit failed:", errText);
+    throw new Error("Failed to update product");
+  }
+
   return res.json();
 }
 
