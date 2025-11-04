@@ -50,9 +50,9 @@ const Navbars = () => {
     })();
   }, []);
 
-  /* -------------------- 🧩 Load user (supports Google login) -------------------- */
+  /* -------------------- 👤 Load user & auto-refresh on login/logout -------------------- */
   useEffect(() => {
-    const initUser = async () => {
+    async function loadUser() {
       try {
         console.log(
           "🧠 Checking for token:",
@@ -72,11 +72,16 @@ const Navbars = () => {
       } finally {
         setLoadingUser(false);
       }
-    };
+    }
 
-    // 🕒 Delay slightly to allow Google login redirect to save tokens first
-    const timer = setTimeout(initUser, 400);
-    return () => clearTimeout(timer);
+    // Initial load
+    loadUser();
+
+    // ✅ Re-run when tokens change (after Google login or logout)
+    const onStorageChange = () => loadUser();
+    window.addEventListener("storage", onStorageChange);
+
+    return () => window.removeEventListener("storage", onStorageChange);
   }, []);
 
   /* -------------------- 🔐 Logout -------------------- */
@@ -84,7 +89,9 @@ const Navbars = () => {
     try {
       await logoutUser();
       setUser(null);
-      navigate("/login");
+      localStorage.clear();
+      window.dispatchEvent(new Event("storage")); // ✅ trigger user refresh globally
+      window.location.replace("/login"); // ✅ hard reload
     } catch (err) {
       console.error("❌ Logout failed:", err);
     }

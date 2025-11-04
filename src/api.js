@@ -119,8 +119,9 @@ export async function loginUser(email, password) {
 
 export function logoutUser() {
   clearTokens();
+  localStorage.clear(); // ✅ remove any cached user data
   console.log("👋 Logged out successfully");
-  window.location.href = "/login";
+  window.location.replace("/login"); // ✅ full reload, not soft nav
 }
 
 // ✅ Get current user
