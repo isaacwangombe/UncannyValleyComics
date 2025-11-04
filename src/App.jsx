@@ -20,7 +20,7 @@ import UsersAdminPage from "./pages/admin/UsersPage";
 import Navbars from "./Components/navbar/Navbar";
 import Footer from "./Components/footer/Footer";
 import CartDrawer from "./Components/cartDrawer/CartDrawer";
-import GoogleCallback from "./pages/auth/GoogleCallback";
+import AuthCallback from "./pages/auth/AuthCallback";
 
 // 🛒 Cart context
 import { CartProvider, useCart } from "./contexts/CartContext";
@@ -54,7 +54,7 @@ function AppContent() {
 
         {/* Admin routes */}
         <Route path="/admin/*" element={<AdminLayoutWrapper />} />
-        <Route path="/auth/callback" element={<GoogleCallback />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
       </Routes>
 
       <Footer />
