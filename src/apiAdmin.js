@@ -1,5 +1,4 @@
 import axios from "axios";
-import { ensureCsrf } from "./api";
 
 // export const API_BASE = import.meta.env.VITE_API_URL;
 export const BACKEND_BASE =
@@ -8,6 +7,22 @@ export const BACKEND_BASE =
     : "http://127.0.0.1:8000";
 
 export const API_BASE = `${BACKEND_BASE}/api`;
+
+export async function ensureCsrf() {
+  let token = getCookie("csrftoken");
+
+  if (!token) {
+    console.log("🔄 No CSRF token found, requesting from backend...");
+    const res = await fetch(`${API_BASE}/get-csrf/`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+    token = data.csrftoken;
+    console.log("✅ CSRF fetched from backend:", token);
+  }
+
+  return token;
+}
 
 // ✅ Create axios instance with cookies enabled
 export const api = axios.create({
