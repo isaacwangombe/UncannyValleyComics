@@ -8,6 +8,12 @@ export const BACKEND_BASE =
 
 export const API_BASE = `${BACKEND_BASE}/api`;
 
+export const api = axios.create({
+  baseURL: API_BASE,
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
+});
+
 /* ==========================================================
    🔐 JWT AUTH MANAGEMENT
 ========================================================== */
