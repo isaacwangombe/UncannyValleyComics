@@ -110,6 +110,10 @@ export async function apiLogin(email, password) {
   console.log("✅ Logged in and tokens saved");
   return data;
 }
+// ✅ Logout
+export function logoutUser() {
+  clearTokens();
+}
 
 // ✅ Get current user
 export async function fetchCurrentUser() {
