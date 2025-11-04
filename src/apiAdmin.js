@@ -9,6 +9,34 @@ export const BACKEND_BASE =
 
 export const API_BASE = `${BACKEND_BASE}/api`;
 
+export async function ensureCsrf() {
+  // Try reading cookie first
+  let token = getCookie("csrftoken");
+
+  if (!token) {
+    console.log("🔄 No CSRF cookie found — requesting from backend...");
+
+    // Ask backend to set CSRF cookie
+    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
+      credentials: "include",
+    });
+
+    if (!res.ok) {
+      console.error("❌ Failed to fetch CSRF token:", res.status);
+      return null;
+    }
+
+    // Wait briefly to ensure browser stores cookie before reading it again
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // Read cookie again after backend sets it
+    token = getCookie("csrftoken");
+  }
+
+  console.log("✅ Using CSRF token:", token);
+  return token;
+}
+
 // ✅ Create axios instance with cookies enabled
 export const api = axios.create({
   baseURL: API_BASE,
