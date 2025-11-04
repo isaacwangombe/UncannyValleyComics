@@ -157,6 +157,27 @@ export async function deleteProduct(id) {
   return res.json().catch(() => ({}));
 }
 
+export async function deleteProductImage(imageId) {
+  const csrfToken = await ensureCsrf();
+
+  const res = await fetch(`${API_BASE}/product-images/${imageId}/`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      "X-CSRFToken": csrfToken,
+    },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("❌ Failed to delete product image:", errText);
+    throw new Error("Failed to delete product image");
+  }
+
+  // Handle 204 No Content safely
+  return res.json().catch(() => ({}));
+}
+
 // --- CATEGORIES ---
 export const getCategories = async () => (await api.get("/categories/")).data;
 export const createCategory = async (data) =>
