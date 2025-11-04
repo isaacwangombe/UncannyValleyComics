@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: uncannyvalley-frontend
+    name: uncannyvalleycomics
     env: static
     buildCommand: npm run build
-    staticPublishPath: dist
+    publish: dist
     routes:
       - type: rewrite
         source: /api/*
