@@ -32,6 +32,12 @@ export const getTopProducts = async () =>
 
 // --- PRODUCTS ---
 export const getProducts = async () => (await api.get("/products/")).data;
+export const createProduct = async (data) =>
+  (await api.post("/products/", data)).data;
+export const updateProduct = async (id, data) =>
+  (await api.put(`/products/${id}/`, data)).data;
+export const deleteProduct = async (id) =>
+  (await api.delete(`/products/${id}/`)).data;
 
 // Add or edit product
 export async function apiEditProduct(id, data) {
@@ -58,24 +64,13 @@ export async function apiEditProduct(id, data) {
 }
 
 export async function apiAddProduct(data) {
-  const csrfToken = await ensureCsrf();
-
   const res = await fetch(`${API_BASE}/products/`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Add failed:", errText);
-    throw new Error("Failed to add product");
-  }
-
+  if (!res.ok) throw new Error("Failed to add product");
   return res.json();
 }
 
@@ -84,11 +79,9 @@ export async function bulkUploadProducts(excelFile, zipFile = null) {
   const formData = new FormData();
   formData.append("excel_file", excelFile);
   if (zipFile) formData.append("images_zip", zipFile);
-  const csrfToken = await ensureCsrf();
 
   const res = await fetch(`${API_BASE}/products/bulk-upload/`, {
     method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
     credentials: "include",
     body: formData,
   });
@@ -99,32 +92,21 @@ export async function bulkUploadProducts(excelFile, zipFile = null) {
 }
 
 export const toggleProductTrending = async (id) => {
-  const csrfToken = await ensureCsrf();
-
   const res = await fetch(`${API_BASE}/products/${id}/toggle_trending/`, {
     method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
     credentials: "include",
   });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Failed to toggle trending:", errText);
-    throw new Error("Failed to toggle trending");
-  }
-
+  if (!res.ok) throw new Error("Failed to toggle trending");
   return res.json();
 };
 
 export async function uploadProductImage(productId, file) {
-  const csrfToken = await ensureCsrf();
   const formData = new FormData();
   formData.append("product", productId);
   formData.append("image", file);
 
   const res = await fetch(`${API_BASE}/product-images/`, {
     method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
     credentials: "include",
     body: formData,
   });
@@ -133,42 +115,13 @@ export async function uploadProductImage(productId, file) {
   return res.json();
 }
 
-export async function deleteProduct(id) {
-  const csrfToken = await ensureCsrf();
-
-  const res = await fetch(`${API_BASE}/products/${id}/`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: { "X-CSRFToken": csrfToken },
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Delete failed:", errText);
-    throw new Error("Failed to delete product");
-  }
-
-  return res.json().catch(() => ({}));
-}
-
 export async function deleteProductImage(imageId) {
-  const csrfToken = await ensureCsrf();
-
   const res = await fetch(`${API_BASE}/product-images/${imageId}/`, {
     method: "DELETE",
     credentials: "include",
-    headers: {
-      "X-CSRFToken": csrfToken,
-    },
   });
 
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Failed to delete product image:", errText);
-    throw new Error("Failed to delete product image");
-  }
-
-  // Handle 204 No Content safely
+  if (!res.ok) throw new Error("Failed to delete product image");
   return res.json().catch(() => ({}));
 }
 
