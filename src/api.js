@@ -118,6 +118,9 @@ export async function apiGetUser() {
   return apiFetch("/auth/user/");
 }
 
+// ✅ Backward compatibility alias
+export { apiGetUser as fetchCurrentUser };
+
 /* ==========================================================
    🛒 CART ENDPOINTS
 ========================================================== */
