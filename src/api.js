@@ -86,43 +86,20 @@ export async function fetchCurrentUser() {
 
 // Logout the user (session-based)
 export async function logoutUser() {
-  await ensureCsrf();
-
   console.log("🔄 Ensuring CSRF token is up-to-date...");
-
-  // 1️⃣ Ask backend to refresh/set cookie — crucial for cross-site
-  const csrfRes = await fetch(
-    "https://uncanny-valley-comics-backend.onrender.com/api/users/set-csrf/",
-    {
-      credentials: "include",
-    }
-  );
-  if (!csrfRes.ok) {
-    throw new Error("Failed to refresh CSRF cookie before logout");
-  }
-
-  // 2️⃣ Extract the actual cookie value that was just set
-  const csrfToken = document.cookie
-    .split("; ")
-    .find((r) => r.startsWith("csrftoken="))
-    ?.split("=")[1];
+  const csrfToken = await ensureCsrf(); // ✅ This now fetches token if missing
 
   console.log("🔐 Using CSRF for logout:", csrfToken);
 
-  // 3️⃣ Now send logout request to the backend with matching header
-  const res = await fetch(
-    "https://uncanny-valley-comics-backend.onrender.com/api/auth/logout/",
-    {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrfToken,
-      },
-    }
-  );
+  const res = await fetch(`${API_BASE}/auth/logout/`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken, // ✅ correct capitalization
+    },
+  });
 
-  // 4️⃣ Handle response
   if (!res.ok) {
     const txt = await res.text();
     console.error("❌ Logout failed:", txt);
