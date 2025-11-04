@@ -8,153 +8,162 @@ export const BACKEND_BASE =
 
 export const API_BASE = `${BACKEND_BASE}/api`;
 
-// 🍪 Helper: Read cookie by name
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
-  return null;
+/* ==========================================================
+   🔐 JWT AUTH MANAGEMENT
+========================================================== */
+
+// Store & retrieve tokens
+export function getAccessToken() {
+  return localStorage.getItem("access");
 }
 
-// 🔐 Ensure a valid CSRF token exists (race-safe)
-export async function ensureCsrf() {
-  let token = getCookie("csrftoken");
+export function getRefreshToken() {
+  return localStorage.getItem("refresh");
+}
 
-  if (!token) {
-    console.log("🔄 No CSRF cookie found — requesting from backend...");
-    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
-      credentials: "include",
+export function saveTokens({ access, refresh }) {
+  if (access) localStorage.setItem("access", access);
+  if (refresh) localStorage.setItem("refresh", refresh);
+}
+
+export function clearTokens() {
+  localStorage.removeItem("access");
+  localStorage.removeItem("refresh");
+}
+
+// Refresh token helper
+async function refreshAccessToken() {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
+
+  try {
+    const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
     });
 
-    if (!res.ok) {
-      console.error("❌ Failed to fetch CSRF token:", res.status);
-      return null;
+    if (!res.ok) throw new Error("Failed to refresh token");
+    const data = await res.json();
+    saveTokens(data);
+    return data.access;
+  } catch (err) {
+    console.error("❌ Token refresh failed:", err);
+    clearTokens();
+    return null;
+  }
+}
+
+// ✅ Authenticated fetch wrapper
+export async function apiFetch(endpoint, options = {}) {
+  let token = getAccessToken();
+
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: token ? `Bearer ${token}` : undefined,
+    "Content-Type": "application/json",
+  };
+
+  let res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  // Try refreshing token if 401
+  if (res.status === 401) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      res = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+          ...headers,
+          Authorization: `Bearer ${newToken}`,
+        },
+      });
+    } else {
+      throw new Error("Unauthorized — please log in again.");
     }
-
-    // Wait briefly to let browser store the cookie
-    await new Promise((resolve) => setTimeout(resolve, 150));
-
-    token = getCookie("csrftoken");
   }
 
-  console.log("✅ Using CSRF token:", token);
-  return token;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Request failed (${res.status}): ${text}`);
+  }
+
+  return res.json();
 }
 
-// ✅ Axios instance (for GET-only endpoints)
-export const api = axios.create({
-  baseURL: API_BASE,
-  withCredentials: true,
-  headers: { "Content-Type": "application/json" },
-});
+/* ==========================================================
+   👤 AUTH ENDPOINTS
+========================================================== */
 
-//
-// =========================
-// 📊 DASHBOARD ENDPOINTS
-// =========================
-export const getDashboardStats = async () =>
-  (await api.get("/admin/analytics/stats/")).data;
-export const getDailySales = async () =>
-  (await api.get("/admin/analytics/daily_sales/")).data;
-export const getMonthlySales = async () =>
-  (await api.get("/admin/analytics/monthly_sales/")).data;
-export const getSalesOverTime = async () =>
-  (await api.get("/admin/analytics/sales_over_time/")).data;
-export const getNewUsers = async () =>
-  (await api.get("/admin/analytics/new_users/")).data;
-export const getTopProducts = async () =>
-  (await api.get("/admin/analytics/top_products/")).data;
-
-//
-// =========================
-// 🛍️ PRODUCT ENDPOINTS
-// =========================
-export const getProducts = async () => (await api.get("/products/")).data;
-
-// ✅ Add Product
-export async function apiAddProduct(data) {
-  const csrfToken = await ensureCsrf();
-
-  if (!csrfToken) throw new Error("CSRF token missing");
-
-  const res = await fetch(`${API_BASE}/products/`, {
+export async function loginUser(email, password) {
+  const res = await fetch(`${API_BASE}/auth/token/`, {
     method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
-    },
-    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
 
   if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Add failed:", errText);
-    throw new Error("Failed to add product");
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.detail || "Login failed");
   }
 
-  return res.json();
+  const data = await res.json();
+  saveTokens(data);
+  return data;
 }
 
-// ✅ Edit Product
+export function logoutUser() {
+  clearTokens();
+}
+
+/* ==========================================================
+   📊 DASHBOARD ENDPOINTS
+========================================================== */
+export const getDashboardStats = async () =>
+  apiFetch("/admin/analytics/stats/");
+export const getDailySales = async () =>
+  apiFetch("/admin/analytics/daily_sales/");
+export const getMonthlySales = async () =>
+  apiFetch("/admin/analytics/monthly_sales/");
+export const getSalesOverTime = async () =>
+  apiFetch("/admin/analytics/sales_over_time/");
+export const getNewUsers = async () => apiFetch("/admin/analytics/new_users/");
+export const getTopProducts = async () =>
+  apiFetch("/admin/analytics/top_products/");
+
+/* ==========================================================
+   🛍️ PRODUCTS
+========================================================== */
+export const getProducts = async () => apiFetch("/products/");
+
+export async function apiAddProduct(data) {
+  return apiFetch("/products/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 export async function apiEditProduct(id, data) {
-  const csrfToken = await ensureCsrf();
-
-  if (!csrfToken) throw new Error("CSRF token missing");
-
-  console.log("🧩 Editing product with CSRF:", csrfToken);
-
-  const res = await fetch(`${API_BASE}/products/${id}/`, {
+  return apiFetch(`/products/${id}/`, {
     method: "PUT",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
-    },
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Edit failed:", errText);
-    throw new Error("Failed to update product");
-  }
-
-  return res.json();
 }
 
-// ✅ Delete Product
 export async function deleteProduct(id) {
-  const csrfToken = await ensureCsrf();
-
-  if (!csrfToken) throw new Error("CSRF token missing");
-
-  const res = await fetch(`${API_BASE}/products/${id}/`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: { "X-CSRFToken": csrfToken },
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Delete failed:", errText);
-    throw new Error("Failed to delete product");
-  }
-
-  return res.json().catch(() => ({})); // handle 204 safely
+  return apiFetch(`/products/${id}/`, { method: "DELETE" });
 }
 
-// ✅ Bulk Upload Products
 export async function bulkUploadProducts(excelFile, zipFile = null) {
-  const csrfToken = await ensureCsrf();
   const formData = new FormData();
   formData.append("excel_file", excelFile);
   if (zipFile) formData.append("images_zip", zipFile);
 
   const res = await fetch(`${API_BASE}/products/bulk-upload/`, {
     method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
-    credentials: "include",
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
     body: formData,
   });
 
@@ -163,41 +172,17 @@ export async function bulkUploadProducts(excelFile, zipFile = null) {
   return data;
 }
 
-// ✅ Toggle Trending Product
-export const toggleProductTrending = async (id) => {
-  const csrfToken = await ensureCsrf();
+export const toggleProductTrending = async (id) =>
+  apiFetch(`/products/${id}/toggle_trending/`, { method: "POST" });
 
-  if (!csrfToken) throw new Error("CSRF token missing");
-
-  const res = await fetch(`${API_BASE}/products/${id}/toggle_trending/`, {
-    method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
-    credentials: "include",
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Failed to toggle trending:", errText);
-    throw new Error("Failed to toggle trending");
-  }
-
-  return res.json();
-};
-
-// ✅ Upload Product Image
 export async function uploadProductImage(productId, file) {
-  const csrfToken = await ensureCsrf();
-
-  if (!csrfToken) throw new Error("CSRF token missing");
-
   const formData = new FormData();
   formData.append("product", productId);
   formData.append("image", file);
 
   const res = await fetch(`${API_BASE}/product-images/`, {
     method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
-    credentials: "include",
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
     body: formData,
   });
 
@@ -205,90 +190,40 @@ export async function uploadProductImage(productId, file) {
   return res.json();
 }
 
-// ✅ Delete Product Image
 export async function deleteProductImage(imageId) {
-  const csrfToken = await ensureCsrf();
-
-  if (!csrfToken) throw new Error("CSRF token missing");
-
-  const res = await fetch(`${API_BASE}/product-images/${imageId}/`, {
-    method: "DELETE",
-    credentials: "include",
-    headers: { "X-CSRFToken": csrfToken },
-  });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("❌ Failed to delete product image:", errText);
-    throw new Error("Failed to delete product image");
-  }
-
-  return res.json().catch(() => ({}));
+  return apiFetch(`/product-images/${imageId}/`, { method: "DELETE" });
 }
 
-//
-// =========================
-// 🗂️ CATEGORY ENDPOINTS
-// =========================
-export const getCategories = async () => (await api.get("/categories/")).data;
+/* ==========================================================
+   🗂️ CATEGORIES
+========================================================== */
+export const getCategories = async () => apiFetch("/categories/");
 
 export async function createCategory(data) {
-  const csrfToken = await ensureCsrf();
-
-  const res = await fetch(`${API_BASE}/categories/`, {
+  return apiFetch("/categories/", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
-    },
-    credentials: "include",
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) throw new Error("Failed to create category");
-  return res.json();
 }
 
 export async function updateCategory(id, data) {
-  const csrfToken = await ensureCsrf();
-
-  const res = await fetch(`${API_BASE}/categories/${id}/`, {
+  return apiFetch(`/categories/${id}/`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrfToken,
-    },
-    credentials: "include",
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) throw new Error("Failed to update category");
-  return res.json();
 }
 
 export async function deleteCategory(id) {
-  const csrfToken = await ensureCsrf();
-
-  const res = await fetch(`${API_BASE}/categories/${id}/`, {
-    method: "DELETE",
-    headers: { "X-CSRFToken": csrfToken },
-    credentials: "include",
-  });
-
-  if (!res.ok) throw new Error("Failed to delete category");
-  return res.json().catch(() => ({}));
+  return apiFetch(`/categories/${id}/`, { method: "DELETE" });
 }
 
-// ✅ Upload Category Image
 export async function uploadCategoryImage(categoryId, file) {
-  const csrfToken = await ensureCsrf();
   const formData = new FormData();
   formData.append("image", file);
 
   const res = await fetch(`${API_BASE}/categories/${categoryId}/`, {
     method: "PATCH",
-    headers: { "X-CSRFToken": csrfToken },
-    credentials: "include",
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
     body: formData,
   });
 
@@ -296,64 +231,17 @@ export async function uploadCategoryImage(categoryId, file) {
   return res.json();
 }
 
-// ✅ Delete Category Image
 export async function deleteCategoryImage(categoryId) {
-  const csrfToken = await ensureCsrf();
-
-  const res = await fetch(
-    `${API_BASE}/categories/${categoryId}/delete-image/`,
-    {
-      method: "DELETE",
-      headers: { "X-CSRFToken": csrfToken },
-      credentials: "include",
-    }
-  );
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(
-      `Failed to delete category image: ${errText || res.status}`
-    );
-  }
-
-  const text = await res.text();
-  if (!text) return { detail: "Image deleted successfully" };
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { detail: text };
-  }
-}
-
-//
-// =========================
-// 👤 USER ADMIN ENDPOINTS
-// =========================
-export const getUsers = async () => (await api.get("/admin/users/")).data;
-
-export async function toggleStaff(id) {
-  const csrfToken = await ensureCsrf();
-
-  const res = await fetch(`${API_BASE}/admin/users/${id}/toggle_staff/`, {
-    method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
-    credentials: "include",
+  return apiFetch(`/categories/${categoryId}/delete-image/`, {
+    method: "DELETE",
   });
-
-  if (!res.ok) throw new Error("Failed to toggle staff status");
-  return res.json();
 }
 
-export async function promoteToOwner(id) {
-  const csrfToken = await ensureCsrf();
-
-  const res = await fetch(`${API_BASE}/admin/users/${id}/promote_to_owner/`, {
-    method: "POST",
-    headers: { "X-CSRFToken": csrfToken },
-    credentials: "include",
-  });
-
-  if (!res.ok) throw new Error("Failed to promote to owner");
-  return res.json();
-}
+/* ==========================================================
+   👥 USER ADMIN
+========================================================== */
+export const getUsers = async () => apiFetch("/admin/users/");
+export const toggleStaff = async (id) =>
+  apiFetch(`/admin/users/${id}/toggle_staff/`, { method: "POST" });
+export const promoteToOwner = async (id) =>
+  apiFetch(`/admin/users/${id}/promote_to_owner/`, { method: "POST" });
