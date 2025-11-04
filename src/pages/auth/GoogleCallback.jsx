@@ -2,7 +2,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function GoogleCallback() {
+const GoogleCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -11,18 +11,25 @@ export default function GoogleCallback() {
     const refresh = params.get("refresh");
 
     if (access && refresh) {
-      // ✅ Save JWT tokens in localStorage
+      // ✅ Save JWT tokens
       localStorage.setItem("access_token", access);
       localStorage.setItem("refresh_token", refresh);
+      console.log("✅ Tokens saved from Google redirect");
 
-      console.log("✅ Google login successful — tokens saved!");
-      // Redirect to homepage after saving
+      // ✅ Redirect to homepage or previous page
       navigate("/", { replace: true });
     } else {
-      console.error("❌ Missing tokens from Google redirect");
+      console.error("❌ Missing tokens in Google redirect URL");
       navigate("/login");
     }
   }, [navigate]);
 
-  return <div>🔄 Signing you in with Google...</div>;
-}
+  return (
+    <div style={{ textAlign: "center", marginTop: "2rem" }}>
+      <h5>🔄 Signing you in with Google...</h5>
+      <p>Please wait a moment...</p>
+    </div>
+  );
+};
+
+export default GoogleCallback;
