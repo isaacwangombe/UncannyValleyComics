@@ -99,7 +99,7 @@ export async function apiFetch(endpoint, options = {}) {
 ========================================================== */
 
 // ✅ Login — now points to SimpleJWT endpoint
-export async function apiLogin(email, password) {
+export async function loginUser(email, password) {
   const res = await fetch(`${API_BASE}/token/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
