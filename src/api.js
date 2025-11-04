@@ -1,8 +1,7 @@
 // src/api.js
+// 🌍 Backend base URL (auto-switch local vs production)
 export const BACKEND_BASE =
-  import.meta.env.MODE === "production"
-    ? "https://uncanny-valley-comics-backend.onrender.com"
-    : "http://127.0.0.1:8000";
+  import.meta.env.MODE === "production" ? "" : "http://127.0.0.1:8000";
 
 export const API_BASE = `${BACKEND_BASE}/api`;
 
