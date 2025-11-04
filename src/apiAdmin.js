@@ -8,22 +8,6 @@ export const BACKEND_BASE =
 
 export const API_BASE = `${BACKEND_BASE}/api`;
 
-export async function ensureCsrf() {
-  let token = getCookie("csrftoken");
-
-  if (!token) {
-    console.log("🔄 No CSRF token found, requesting from backend...");
-    const res = await fetch(`${API_BASE}/get-csrf/`, {
-      credentials: "include",
-    });
-    const data = await res.json();
-    token = data.csrftoken;
-    console.log("✅ CSRF fetched from backend:", token);
-  }
-
-  return token;
-}
-
 // ✅ Create axios instance with cookies enabled
 export const api = axios.create({
   baseURL: API_BASE,
@@ -56,16 +40,16 @@ export const deleteProduct = async (id) =>
 
 // Add or edit product
 export async function apiEditProduct(id, data) {
-  const csrfToken = await ensureCsrf(); // ✅ guaranteed to fetch correct token
+  const csrfToken = await ensureCsrf();
   console.log("🧩 Editing product with CSRF:", csrfToken);
 
   const res = await fetch(`${API_BASE}/products/${id}/`, {
     method: "PUT",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       "X-CSRFToken": csrfToken,
     },
-    credentials: "include",
     body: JSON.stringify(data),
   });
 
@@ -75,6 +59,17 @@ export async function apiEditProduct(id, data) {
     throw new Error("Failed to update product");
   }
 
+  return res.json();
+}
+
+export async function apiAddProduct(data) {
+  const res = await fetch(`${API_BASE}/products/`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to add product");
   return res.json();
 }
 
