@@ -1,13 +1,25 @@
 services:
+  # === Frontend ===
   - type: web
     name: uncannyvalleycomics
     env: static
     buildCommand: npm run build
     publish: dist
     routes:
+      # 👇 Forward all API requests to the Django backend
       - type: rewrite
         source: /api/*
         destination: https://uncanny-valley-comics-backend.onrender.com/api/:splat
+
+      # 👇 Handle all other routes with index.html (for React Router)
       - type: rewrite
         source: /*
         destination: /index.html
+
+  # === Backend ===
+  - type: web
+    name: uncannyvalleycomics-backend
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn uncanny_valley.wsgi
+    plan: free
