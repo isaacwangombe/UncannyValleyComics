@@ -45,18 +45,38 @@ const Navbars = () => {
         const cats = Array.isArray(data) ? data : data.results || [];
         setCategories(cats);
       } catch (err) {
-        console.error("Failed to load categories:", err);
+        console.error("❌ Failed to load categories:", err);
       }
     })();
   }, []);
 
-  /* -------------------- 🧩 Load user -------------------- */
+  /* -------------------- 🧩 Load user (supports Google login) -------------------- */
   useEffect(() => {
-    (async () => {
-      const currentUser = await fetchCurrentUser();
-      setUser(currentUser);
-      setLoadingUser(false);
-    })();
+    const initUser = async () => {
+      try {
+        console.log(
+          "🧠 Checking for token:",
+          localStorage.getItem("access_token")
+        );
+        const currentUser = await fetchCurrentUser();
+        if (currentUser) {
+          console.log("✅ User fetched:", currentUser);
+          setUser(currentUser);
+        } else {
+          console.log("⚠️ No logged-in user found");
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("❌ Failed to load user:", err);
+        setUser(null);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+
+    // 🕒 Delay slightly to allow Google login redirect to save tokens first
+    const timer = setTimeout(initUser, 400);
+    return () => clearTimeout(timer);
   }, []);
 
   /* -------------------- 🔐 Logout -------------------- */
@@ -66,7 +86,7 @@ const Navbars = () => {
       setUser(null);
       navigate("/login");
     } catch (err) {
-      console.error("Logout failed", err);
+      console.error("❌ Logout failed:", err);
     }
   };
 
@@ -86,7 +106,7 @@ const Navbars = () => {
         setSuggestions(results.slice(0, 8));
         setShowSuggestions(results.length > 0);
       } catch (err) {
-        console.error("Error fetching product suggestions:", err);
+        console.error("❌ Error fetching product suggestions:", err);
         setSuggestions([]);
         setShowSuggestions(false);
       }
@@ -135,6 +155,7 @@ const Navbars = () => {
     user?.role ||
     (user?.is_superuser ? "Owner" : user?.is_staff ? "Staff" : "User");
 
+  /* -------------------- 🧩 UI -------------------- */
   return (
     <Navbar expand="lg" bg="white" className="px-3 py-2 underline">
       <Container fluid>
@@ -291,6 +312,7 @@ const Navbars = () => {
             )}
           </Form>
 
+          {/* 👤 User / Login UI */}
           <div className="ms-3 d-flex align-items-center">
             {loadingUser ? (
               <Spinner animation="border" size="sm" />

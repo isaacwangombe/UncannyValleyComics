@@ -125,7 +125,7 @@ export function logoutUser() {
 
 // ✅ Get current user
 export async function fetchCurrentUser() {
-  const token = getAccessToken();
+  const token = localStorage.getItem("access_token");
 
   if (!token) {
     console.log("⚠️ No token found — user not logged in");
@@ -133,22 +133,20 @@ export async function fetchCurrentUser() {
   }
 
   const res = await fetch(`${API_BASE}/auth/user/`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   if (res.status === 401) {
-    console.warn("🔄 Token expired — trying refresh...");
+    console.warn("🔄 Access token expired — attempting refresh...");
     const refreshed = await refreshAccessToken();
-    if (!refreshed) {
-      console.log("⚠️ Re-login required — returning null");
-      return null;
-    }
-    return await fetchCurrentUser();
+    if (refreshed) return await fetchCurrentUser();
+    return null;
   }
 
   if (!res.ok) {
-    const text = await res.text();
-    console.error("❌ Failed to fetch user:", text);
+    console.error("❌ Failed to fetch user:", res.status);
     return null;
   }
 
