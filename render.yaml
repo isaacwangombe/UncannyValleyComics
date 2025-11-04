@@ -4,7 +4,7 @@ services:
     name: uncannyvalleycomics
     env: static
     buildCommand: npm run build
-    publish: dist
+    staticPublishPath: dist
     routes:
       # 👇 Forward all API requests to the Django backend
       - type: rewrite
