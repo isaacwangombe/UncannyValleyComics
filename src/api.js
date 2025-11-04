@@ -28,26 +28,27 @@ function clearTokens() {
   localStorage.removeItem("refresh");
 }
 
-async function refreshAccessToken() {
-  const refresh = getRefreshToken();
+export async function refreshAccessToken() {
+  const refresh = localStorage.getItem("refresh_token");
   if (!refresh) return null;
 
-  try {
-    const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh }),
-    });
+  const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh }),
+  });
 
-    if (!res.ok) throw new Error("Token refresh failed");
-    const data = await res.json();
-    saveTokens(data);
-    return data.access;
-  } catch (err) {
-    console.error("❌ Token refresh failed:", err);
-    clearTokens();
+  if (!res.ok) {
+    console.warn("⚠️ Failed to refresh token");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     return null;
   }
+
+  const data = await res.json();
+  localStorage.setItem("access_token", data.access);
+  console.log("🔄 Access token refreshed");
+  return data.access;
 }
 
 // ✅ General-purpose fetch wrapper with JWT auth
@@ -110,9 +111,11 @@ export async function apiLogin(email, password) {
   console.log("✅ Logged in and tokens saved");
   return data;
 }
-// ✅ Logout
 export function logoutUser() {
-  clearTokens();
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  console.log("👋 Logged out successfully");
+  window.location.href = "/login";
 }
 
 // ✅ Get current user
