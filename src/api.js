@@ -127,8 +127,13 @@ export function logoutUser() {
 
 // ✅ Get current user (protected endpoint)
 export async function fetchCurrentUser() {
-  const token = getAccessToken();
-  if (!token) throw new Error("No token found");
+  const token = localStorage.getItem("access_token");
+
+  // ✅ If not logged in, just return null instead of throwing
+  if (!token) {
+    console.log("⚠️ No token found — user not logged in");
+    return null;
+  }
 
   const res = await fetch(`${API_BASE}/auth/user/`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -137,13 +142,17 @@ export async function fetchCurrentUser() {
   if (res.status === 401) {
     console.warn("🔄 Token expired — trying refresh...");
     const refreshed = await refreshAccessToken();
-    if (!refreshed) throw new Error("Re-login required");
+    if (!refreshed) {
+      console.log("⚠️ Re-login required — returning null");
+      return null;
+    }
     return await fetchCurrentUser();
   }
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Unauthorized: ${text}`);
+    console.error("❌ Failed to fetch user:", text);
+    return null;
   }
 
   return await res.json();
