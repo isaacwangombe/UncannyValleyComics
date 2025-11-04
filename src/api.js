@@ -95,17 +95,20 @@ export async function apiLogin(email, password) {
     body: JSON.stringify({ email, password }),
   });
 
-  if (!res.ok) throw new Error("Login failed");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("❌ Login failed:", text);
+    throw new Error("Invalid credentials");
+  }
+
   const data = await res.json();
 
-  // ✅ Store JWT token
-  localStorage.setItem("access_token", data.access);
-  return data;
-}
+  // ✅ Save tokens to localStorage
+  if (data.access) localStorage.setItem("access_token", data.access);
+  if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
 
-// ✅ Logout
-export function logoutUser() {
-  clearTokens();
+  console.log("✅ Logged in and tokens saved");
+  return data;
 }
 
 // ✅ Get current user
@@ -119,7 +122,21 @@ export async function fetchCurrentUser() {
     },
   });
 
-  if (!res.ok) throw new Error("Unauthorized");
+  if (res.status === 401) {
+    console.warn("🔄 Access token expired — trying refresh...");
+    const refreshed = await refreshAccessToken();
+    if (!refreshed) throw new Error("Re-login required");
+
+    // Retry with new token
+    return await fetchCurrentUser();
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("❌ Failed to fetch user:", text);
+    throw new Error("Unauthorized");
+  }
+
   return await res.json();
 }
 
