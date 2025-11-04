@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// 🌍 Backend base URL (auto-switch for local vs production)
+// 🌍 Backend base URL (auto-switch local vs production)
 export const BACKEND_BASE =
   import.meta.env.MODE === "production"
     ? "https://uncanny-valley-comics-backend.onrender.com"
@@ -8,7 +8,7 @@ export const BACKEND_BASE =
 
 export const API_BASE = `${BACKEND_BASE}/api`;
 
-// 🍪 Helper: Get a specific cookie
+// 🍪 Helper: Read cookie by name
 function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -16,23 +16,32 @@ function getCookie(name) {
   return null;
 }
 
-// 🔐 Ensure a valid CSRF token is present
+// 🔐 Ensure a valid CSRF token exists (race-safe)
 export async function ensureCsrf() {
   let token = getCookie("csrftoken");
 
   if (!token) {
-    console.log("🔄 No CSRF token found, requesting from backend...");
-    await fetch(`${API_BASE}/users/set-csrf/`, {
+    console.log("🔄 No CSRF cookie found — requesting from backend...");
+    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
       credentials: "include",
     });
+
+    if (!res.ok) {
+      console.error("❌ Failed to fetch CSRF token:", res.status);
+      return null;
+    }
+
+    // Wait briefly to let browser store the cookie
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
     token = getCookie("csrftoken");
-    console.log("✅ CSRF cookie set:", token);
   }
 
+  console.log("✅ Using CSRF token:", token);
   return token;
 }
 
-// ✅ Axios instance for GET-only endpoints
+// ✅ Axios instance (for GET-only endpoints)
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
@@ -40,9 +49,9 @@ export const api = axios.create({
 });
 
 //
-// ======================
+// =========================
 // 📊 DASHBOARD ENDPOINTS
-// ======================
+// =========================
 export const getDashboardStats = async () =>
   (await api.get("/admin/analytics/stats/")).data;
 export const getDailySales = async () =>
@@ -57,14 +66,16 @@ export const getTopProducts = async () =>
   (await api.get("/admin/analytics/top_products/")).data;
 
 //
-// ======================
+// =========================
 // 🛍️ PRODUCT ENDPOINTS
-// ======================
+// =========================
 export const getProducts = async () => (await api.get("/products/")).data;
 
-// ✅ Create Product
+// ✅ Add Product
 export async function apiAddProduct(data) {
   const csrfToken = await ensureCsrf();
+
+  if (!csrfToken) throw new Error("CSRF token missing");
 
   const res = await fetch(`${API_BASE}/products/`, {
     method: "POST",
@@ -88,6 +99,9 @@ export async function apiAddProduct(data) {
 // ✅ Edit Product
 export async function apiEditProduct(id, data) {
   const csrfToken = await ensureCsrf();
+
+  if (!csrfToken) throw new Error("CSRF token missing");
+
   console.log("🧩 Editing product with CSRF:", csrfToken);
 
   const res = await fetch(`${API_BASE}/products/${id}/`, {
@@ -113,6 +127,8 @@ export async function apiEditProduct(id, data) {
 export async function deleteProduct(id) {
   const csrfToken = await ensureCsrf();
 
+  if (!csrfToken) throw new Error("CSRF token missing");
+
   const res = await fetch(`${API_BASE}/products/${id}/`, {
     method: "DELETE",
     credentials: "include",
@@ -125,7 +141,7 @@ export async function deleteProduct(id) {
     throw new Error("Failed to delete product");
   }
 
-  return res.json().catch(() => ({})); // 204 safety
+  return res.json().catch(() => ({})); // handle 204 safely
 }
 
 // ✅ Bulk Upload Products
@@ -151,6 +167,8 @@ export async function bulkUploadProducts(excelFile, zipFile = null) {
 export const toggleProductTrending = async (id) => {
   const csrfToken = await ensureCsrf();
 
+  if (!csrfToken) throw new Error("CSRF token missing");
+
   const res = await fetch(`${API_BASE}/products/${id}/toggle_trending/`, {
     method: "POST",
     headers: { "X-CSRFToken": csrfToken },
@@ -169,6 +187,9 @@ export const toggleProductTrending = async (id) => {
 // ✅ Upload Product Image
 export async function uploadProductImage(productId, file) {
   const csrfToken = await ensureCsrf();
+
+  if (!csrfToken) throw new Error("CSRF token missing");
+
   const formData = new FormData();
   formData.append("product", productId);
   formData.append("image", file);
@@ -184,15 +205,16 @@ export async function uploadProductImage(productId, file) {
   return res.json();
 }
 
+// ✅ Delete Product Image
 export async function deleteProductImage(imageId) {
   const csrfToken = await ensureCsrf();
+
+  if (!csrfToken) throw new Error("CSRF token missing");
 
   const res = await fetch(`${API_BASE}/product-images/${imageId}/`, {
     method: "DELETE",
     credentials: "include",
-    headers: {
-      "X-CSRFToken": csrfToken,
-    },
+    headers: { "X-CSRFToken": csrfToken },
   });
 
   if (!res.ok) {
@@ -201,14 +223,13 @@ export async function deleteProductImage(imageId) {
     throw new Error("Failed to delete product image");
   }
 
-  // Handle 204 No Content safely
   return res.json().catch(() => ({}));
 }
 
 //
-// ======================
+// =========================
 // 🗂️ CATEGORY ENDPOINTS
-// ======================
+// =========================
 export const getCategories = async () => (await api.get("/categories/")).data;
 
 export async function createCategory(data) {
@@ -306,9 +327,9 @@ export async function deleteCategoryImage(categoryId) {
 }
 
 //
-// ======================
+// =========================
 // 👤 USER ADMIN ENDPOINTS
-// ======================
+// =========================
 export const getUsers = async () => (await api.get("/admin/users/")).data;
 
 export async function toggleStaff(id) {

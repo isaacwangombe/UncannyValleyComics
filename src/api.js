@@ -14,18 +14,30 @@ export const API_BASE = `${BACKEND_BASE}/api`;
 // ✅ Unified CSRF helper
 
 export async function ensureCsrf() {
+  // Try reading cookie first
   let token = getCookie("csrftoken");
 
   if (!token) {
-    console.log("🔄 No CSRF token found, requesting from backend...");
-    const res = await fetch(`${API_BASE}/get-csrf/`, {
+    console.log("🔄 No CSRF cookie found — requesting from backend...");
+
+    // Ask backend to set CSRF cookie
+    const res = await fetch(`${API_BASE}/users/set-csrf/`, {
       credentials: "include",
     });
-    const data = await res.json();
-    token = data.csrftoken;
-    console.log("✅ CSRF fetched from backend:", token);
+
+    if (!res.ok) {
+      console.error("❌ Failed to fetch CSRF token:", res.status);
+      return null;
+    }
+
+    // Wait briefly to ensure browser stores cookie before reading it again
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    // Read cookie again after backend sets it
+    token = getCookie("csrftoken");
   }
 
+  console.log("✅ Using CSRF token:", token);
   return token;
 }
 
