@@ -17,6 +17,7 @@ export default function AuthCallback() {
       // Save tokens in localStorage
       localStorage.setItem("access_token", access);
       localStorage.setItem("refresh_token", refresh);
+      window.dispatchEvent(new Event("storage"));
 
       console.log("✅ Tokens saved, redirecting to homepage...");
       navigate("/"); // Go back to homepage (or admin if you prefer)

@@ -117,11 +117,22 @@ export async function loginUser(email, password) {
   return data;
 }
 
-export function logoutUser() {
-  clearTokens();
-  localStorage.clear(); // ✅ remove any cached user data
-  console.log("👋 Logged out successfully");
-  window.location.replace("/login"); // ✅ full reload, not soft nav
+export async function logoutUser() {
+  try {
+    // Tell backend to clear Django session
+    await fetch(`${API_BASE}/auth/full-logout/`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch (err) {
+    console.warn("⚠️ Backend logout failed (likely already logged out)");
+  }
+
+  // Clear tokens and frontend session
+  localStorage.clear();
+  console.log("👋 Logged out fully");
+  window.dispatchEvent(new Event("storage")); // refresh Navbar
+  window.location.replace("/login"); // hard reload
 }
 
 // ✅ Get current user
