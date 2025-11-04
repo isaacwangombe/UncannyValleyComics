@@ -1,7 +1,28 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { resolve } from "path";
+import { copyFileSync } from "fs";
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
-})
+  plugins: [
+    react(),
+    {
+      name: "copy-redirects",
+      closeBundle() {
+        try {
+          // ✅ Corrected path — copy from public/_redirects
+          copyFileSync(
+            resolve("public/_redirects"),
+            resolve("dist/_redirects")
+          );
+          console.log("✅ Copied _redirects into dist/");
+        } catch (e) {
+          console.warn("⚠️ Could not copy _redirects:", e.message);
+        }
+      },
+    },
+  ],
+  build: {
+    outDir: "dist",
+  },
+});
