@@ -89,19 +89,17 @@ export async function apiFetch(endpoint, options = {}) {
 
 // ✅ Login
 export async function apiLogin(email, password) {
-  const res = await fetch(`${API_BASE}/auth/token/`, {
+  const res = await fetch(`${API_BASE}/auth/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
 
-  if (!res.ok) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.detail || "Login failed");
-  }
-
+  if (!res.ok) throw new Error("Login failed");
   const data = await res.json();
-  saveTokens(data);
+
+  // ✅ Store JWT token
+  localStorage.setItem("access_token", data.access);
   return data;
 }
 
@@ -112,7 +110,17 @@ export function logoutUser() {
 
 // ✅ Get current user
 export async function fetchCurrentUser() {
-  return apiFetch("/auth/user/");
+  const token = localStorage.getItem("access_token");
+  if (!token) throw new Error("No token found");
+
+  const res = await fetch(`${API_BASE}/auth/user/`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) throw new Error("Unauthorized");
+  return await res.json();
 }
 
 /* ==========================================================
