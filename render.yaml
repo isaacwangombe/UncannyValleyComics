@@ -1,17 +1,14 @@
 services:
   # === Frontend ===
   - type: web
-    name: uncannyvalleycomics
+    name: uncannyvalleycomics-frontend
     env: static
     buildCommand: npm run build
     staticPublishPath: dist
     routes:
-      # 👇 Forward all API requests to the Django backend
       - type: rewrite
         source: /api/*
         destination: https://uncanny-valley-comics-backend.onrender.com/api/:splat
-
-      # 👇 Handle all other routes with index.html (for React Router)
       - type: rewrite
         source: /*
         destination: /index.html
@@ -20,6 +17,13 @@ services:
   - type: web
     name: uncannyvalleycomics-backend
     env: python
-    buildCommand: ""
-    startCommand: gunicorn uncanny_valley.wsgi
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn uncanny_valley.wsgi:application
     plan: free
+    envVars:
+      - key: DEBUG
+        value: False
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 2
