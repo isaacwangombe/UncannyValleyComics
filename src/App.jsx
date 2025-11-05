@@ -12,7 +12,7 @@ import Register from "./pages/register/Register";
 // 🧩 Admin pages
 import AdminLayout from "./Components/admin/AdminLayout";
 import DashboardPage from "./pages/admin/DashboardPage";
-import ProductsPage from "./pages/admin/ProductsPage";
+import ProductsPage from "./pages/admin/products/ProductsPage";
 import CategoriesAdminPage from "./pages/admin/CategoriesPage";
 import UsersAdminPage from "./pages/admin/UsersPage";
 
