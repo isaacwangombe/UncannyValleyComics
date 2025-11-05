@@ -10,20 +10,20 @@ export const API_BASE = `${BACKEND_BASE}/api`;
    🔐 TOKEN & AUTH HELPERS
 ========================================================== */
 
-function getAccessToken() {
+export function getAccessToken() {
   return localStorage.getItem("access_token");
 }
 
-function getRefreshToken() {
+export function getRefreshToken() {
   return localStorage.getItem("refresh_token");
 }
 
-function saveTokens({ access, refresh }) {
+export function saveTokens({ access, refresh }) {
   if (access) localStorage.setItem("access_token", access);
   if (refresh) localStorage.setItem("refresh_token", refresh);
 }
 
-function clearTokens() {
+export function clearTokens() {
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
 }
