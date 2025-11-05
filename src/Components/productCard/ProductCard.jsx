@@ -1,18 +1,28 @@
-// src/components/ProductCard.jsx
 import React from "react";
 import { Card, Button } from "react-bootstrap";
 import { useCart } from "../../contexts/CartContext";
 import "./productCard.css";
 
+const formatKES = (v) => {
+  if (v === null || v === undefined) return "Kes 0.00";
+  return `Kes ${Number(v).toFixed(2)}`;
+};
+
 const ProductCard = ({ product }) => {
   const { addItem } = useCart();
 
   const imageUrl = product.images?.length ? product.images[0].image : null;
-  const price = product.price ?? product.variants?.[0]?.price ?? "0.00";
+  const effectivePrice = product.discounted_price ?? product.price ?? "0.00";
+  const hasDiscount =
+    product.discounted_price !== null && product.discounted_price !== undefined;
 
   return (
     <div className="card_container">
-      <a href="#" className="card product_card">
+      <a
+        href="#"
+        className="card product_card"
+        onClick={(e) => e.preventDefault()}
+      >
         <img
           src={
             imageUrl
@@ -30,7 +40,28 @@ const ProductCard = ({ product }) => {
 
             <div className="card__header-text">
               <h3 className="card__title">{product.title}</h3>
-              <span className="card__status">{price} Kes</span>
+              <span className="card__status">
+                {hasDiscount ? (
+                  <>
+                    <span
+                      style={{
+                        textDecoration: "line-through",
+                        opacity: 0.7,
+                        marginRight: 8,
+                      }}
+                    >
+                      {formatKES(product.price)}
+                    </span>
+                    <span style={{ fontWeight: 700 }}>
+                      {formatKES(effectivePrice)}
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ fontWeight: 700 }}>
+                    {formatKES(effectivePrice)}
+                  </span>
+                )}
+              </span>
             </div>
           </div>
           <div className="card__description">

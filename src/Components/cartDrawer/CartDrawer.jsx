@@ -1,8 +1,12 @@
-// src/components/CartDrawer.jsx
 import React from "react";
 import { Offcanvas, Button, ListGroup, Row, Col } from "react-bootstrap";
 import { useCart } from "../../contexts/CartContext";
 import { Link } from "react-router-dom";
+
+const formatKES = (v) => {
+  if (v === null || v === undefined) return "Kes 0.00";
+  return `Kes ${Number(v).toFixed(2)}`;
+};
 
 const CartDrawer = ({ show, onClose }) => {
   const { cart, loading, increase, decrease, removeItem } = useCart();
@@ -37,7 +41,9 @@ const CartDrawer = ({ show, onClose }) => {
                   </Col>
                   <Col xs={6}>
                     <div style={{ fontWeight: 600 }}>{it.product?.title}</div>
-                    <div className="text-muted small">${it.unit_price}</div>
+                    <div className="text-muted small">
+                      {formatKES(it.unit_price)}
+                    </div>
                   </Col>
                   <Col xs={3} className="text-end">
                     <div className="d-flex flex-column align-items-end">
@@ -81,7 +87,9 @@ const CartDrawer = ({ show, onClose }) => {
         <div className="mt-3">
           <div className="d-flex justify-content-between align-items-center mb-2">
             <div className="text-muted">Subtotal</div>
-            <div style={{ fontWeight: 700 }}>${cart?.total ?? "0.00"}</div>
+            <div style={{ fontWeight: 700 }}>
+              {formatKES(cart?.total ?? "0.00")}
+            </div>
           </div>
           <div className="d-grid gap-2">
             <Link to="/checkout" onClick={onClose}>

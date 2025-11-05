@@ -3,10 +3,20 @@ import "./CardHover.css";
 import Button from "react-bootstrap/Button";
 import { useCart } from "../../contexts/CartContext";
 
+const formatKES = (v) => {
+  if (v === null || v === undefined) return "Kes 0.00";
+  return `Kes ${Number(v).toFixed(2)}`;
+};
+
 const CardHover = ({ product }) => {
   const imageUrl =
     product?.images?.[0]?.image || "https://via.placeholder.com/400";
-  const price = product?.price ? `Kes ${product.price}` : "";
+
+  const effectivePrice = product?.discounted_price ?? product?.price ?? 0;
+  const hasDiscount =
+    product?.discounted_price !== null &&
+    product?.discounted_price !== undefined;
+
   const { addItem } = useCart();
 
   const [adding, setAdding] = useState(false);
@@ -37,7 +47,28 @@ const CardHover = ({ product }) => {
         <div className="center">
           <h1>{product.title}</h1>
           <p>{product.description?.slice(0, 500)}...</p>
-          <p>{price}</p>
+          <p>
+            {hasDiscount ? (
+              <>
+                <span
+                  style={{
+                    textDecoration: "line-through",
+                    opacity: 0.7,
+                    marginRight: 8,
+                  }}
+                >
+                  {formatKES(product.price)}
+                </span>
+                <span style={{ fontWeight: 700 }}>
+                  {formatKES(effectivePrice)}
+                </span>
+              </>
+            ) : (
+              <span style={{ fontWeight: 700 }}>
+                {formatKES(effectivePrice)}
+              </span>
+            )}
+          </p>
 
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <Button
