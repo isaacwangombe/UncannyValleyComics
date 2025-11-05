@@ -15,8 +15,6 @@ export const BACKEND_BASE =
     ? "https://uncanny-valley-comics-backend.onrender.com"
     : "http://127.0.0.1:8000";
 
-export const API_BASE = `${BACKEND_BASE}/api`;
-
 export const api = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
