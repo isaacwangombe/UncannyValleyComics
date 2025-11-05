@@ -1,4 +1,13 @@
 import axios from "axios";
+import {
+  API_BASE,
+  getAccessToken,
+  getRefreshToken,
+  saveTokens,
+  clearTokens,
+  refreshAccessToken,
+  apiFetch,
+} from "./api"; //
 
 // 🌍 Backend base URL (auto-switch local vs production)
 export const BACKEND_BASE =
@@ -13,96 +22,6 @@ export const api = axios.create({
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
-
-/* ==========================================================
-   🔐 JWT AUTH MANAGEMENT
-========================================================== */
-
-// Store & retrieve tokens
-export function getAccessToken() {
-  return localStorage.getItem("access");
-}
-
-export function getRefreshToken() {
-  return localStorage.getItem("refresh");
-}
-
-export function saveTokens({ access, refresh }) {
-  if (access) localStorage.setItem("access", access);
-  if (refresh) localStorage.setItem("refresh", refresh);
-}
-
-export function clearTokens() {
-  localStorage.removeItem("access");
-  localStorage.removeItem("refresh");
-}
-
-// Refresh token helper
-async function refreshAccessToken() {
-  const refresh = getRefreshToken();
-  if (!refresh) return null;
-
-  try {
-    const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh }),
-    });
-
-    if (!res.ok) throw new Error("Failed to refresh token");
-    const data = await res.json();
-    saveTokens(data);
-    return data.access;
-  } catch (err) {
-    console.error("❌ Token refresh failed:", err);
-    clearTokens();
-    return null;
-  }
-}
-
-// ✅ Authenticated fetch wrapper
-export async function apiFetch(endpoint, options = {}) {
-  let token = getAccessToken();
-
-  const headers = {
-    ...(options.headers || {}),
-    Authorization: token ? `Bearer ${token}` : undefined,
-    "Content-Type": "application/json",
-  };
-  console.log("📡 PUT /products request header:", headers.Authorization);
-
-  let res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
-
-  // Try refreshing token if 401
-  if (res.status === 401) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
-      res = await fetch(`${API_BASE}${endpoint}`, {
-        ...options,
-        headers: {
-          ...headers,
-          Authorization: `Bearer ${newToken}`,
-        },
-      });
-    } else {
-      throw new Error("Unauthorized — please log in again.");
-    }
-  }
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Request failed (${res.status}): ${text}`);
-  }
-
-  return res.json();
-}
-
-/* ==========================================================
-   👤 AUTH ENDPOINTS
-========================================================== */
 
 export async function loginUser(email, password) {
   const res = await fetch(`${API_BASE}/auth/token/`, {
