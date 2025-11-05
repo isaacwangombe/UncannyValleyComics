@@ -69,6 +69,7 @@ export async function apiFetch(endpoint, options = {}) {
     Authorization: token ? `Bearer ${token}` : undefined,
     "Content-Type": "application/json",
   };
+  console.log("📡 PUT /products request header:", headers.Authorization);
 
   let res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
