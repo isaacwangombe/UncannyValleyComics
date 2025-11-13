@@ -1,5 +1,7 @@
 import React from "react";
 import { Card, Button } from "react-bootstrap";
+import { Link } from "react-router-dom";
+
 import { useCart } from "../../contexts/CartContext";
 import "./productCard.css";
 
@@ -74,6 +76,12 @@ const ProductCard = ({ product }) => {
               >
                 Add to cart
               </Button>
+              <Link
+                to={`/product/${product.id}`}
+                style={{ textDecoration: "none", color: "black" }}
+              >
+                <p className="mb-2">Details</p>
+              </Link>
             </div>
           </div>
         </div>

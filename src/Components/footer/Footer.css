@@ -7,3 +7,9 @@
   display: grid;
   place-content: center;
 }
+
+.hover-glow:hover {
+  color: #ffb703 !important; /* change glow color if you prefer */
+  transform: scale(1.15);
+  text-shadow: 0 0 10px rgba(255, 183, 3, 0.6);
+}

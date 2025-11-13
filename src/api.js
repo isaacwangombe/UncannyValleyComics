@@ -235,6 +235,14 @@ export async function fetchTrendingProducts(parentSlug = null) {
   return apiFetch(url);
 }
 
+export const fetchProductById = async (id) => {
+  const res = await fetch(
+    `${import.meta.env.VITE_API_URL_SHORT}/api/products/${id}/`
+  );
+  if (!res.ok) throw new Error("Failed to fetch product");
+  return res.json();
+};
+
 /* ==========================================================
    💳 ORDERS
 ========================================================== */

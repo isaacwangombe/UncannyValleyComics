@@ -8,6 +8,7 @@ import CheckoutPage from "./pages/checkoutPage/CheckoutPage";
 import Homepage from "./pages/homepage/Homepage";
 import Login from "./pages/login/Login";
 import Register from "./pages/register/Register";
+import AboutPage from "./pages/about/AboutPage";
 
 // 🧩 Admin pages
 import AdminLayout from "./Components/admin/AdminLayout";
@@ -15,6 +16,7 @@ import DashboardPage from "./pages/admin/DashboardPage";
 import ProductsPage from "./pages/admin/products/ProductsPage";
 import CategoriesAdminPage from "./pages/admin/CategoriesPage";
 import UsersAdminPage from "./pages/admin/UsersPage";
+import OrdersPage from "./pages/admin/orders/OrdersPage";
 
 // 🧭 Layout components
 import Navbars from "./Components/navbar/Navbar";
@@ -24,6 +26,7 @@ import AuthCallback from "./pages/auth/AuthCallback";
 
 // 🛒 Cart context
 import { CartProvider, useCart } from "./contexts/CartContext";
+import ProductDetailPage from "./pages/productDetail/ProductDetailPage";
 
 function App() {
   return (
@@ -48,9 +51,11 @@ function AppContent() {
         {/* Public routes */}
         <Route path="/" element={<Homepage />} />
         <Route path="/store" element={<StorePage />} />
+        <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/about" element={<AboutPage />} />
 
         {/* Admin routes */}
         <Route path="/admin/*" element={<AdminLayoutWrapper />} />
@@ -73,6 +78,7 @@ const AdminLayoutWrapper = () => (
       <Route path="products" element={<ProductsPage />} />
       <Route path="categories" element={<CategoriesAdminPage />} />
       <Route path="users" element={<UsersAdminPage />} />
+      <Route path="orders" element={<OrdersPage />} />
     </Routes>
   </AdminLayout>
 );
