@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Navbar, Container, Spinner, Button, Nav } from "react-bootstrap";
 import { fetchCurrentUser, logoutUser } from "../../api";
+import "../../styles/admin-theme.css";
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 

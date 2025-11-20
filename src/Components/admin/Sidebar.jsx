@@ -1,6 +1,8 @@
+// src/components/admin/Sidebar.jsx
 import React from "react";
 import { Nav } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
+import "../../styles/admin-theme.css";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -12,6 +14,13 @@ const Sidebar = () => {
     { path: "/admin/categories", label: "Categories" },
     { path: "/admin/users", label: "Users" },
     { path: "/admin/orders", label: "Orders" },
+    { path: "/admin/scan", label: "QR Scanner" },
+
+    // --------------------------------------------------
+    // ✉️ NEW MESSAGING SECTION
+    // --------------------------------------------------
+    { path: "/admin/messages", label: "Messages" },
+    { path: "/admin/mailing-list", label: "Mailing List" },
   ];
 
   return (
@@ -26,6 +35,7 @@ const Sidebar = () => {
       }}
     >
       <h5 className="text-center fw-bold mb-4">Admin Panel</h5>
+
       <Nav className="flex-column">
         {links.map((link) => (
           <Nav.Link

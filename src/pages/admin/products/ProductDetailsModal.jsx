@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Row, Col, Badge, Button } from "react-bootstrap";
+import "../../../styles/admin-theme.css";
 
 const ProductDetailsModal = ({
   show,

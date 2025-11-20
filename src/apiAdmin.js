@@ -43,19 +43,33 @@ export function logoutUser() {
 }
 
 /* ==========================================================
-   📊 DASHBOARD ENDPOINTS
+📊 DASHBOARD ENDPOINTS — FIXED & RANGE-AWARE
 ========================================================== */
-export const getDashboardStats = async () =>
-  apiFetch("/admin/analytics/stats/");
-export const getDailySales = async () =>
-  apiFetch("/admin/analytics/daily_sales/");
-export const getMonthlySales = async () =>
-  apiFetch("/admin/analytics/monthly_sales/");
-export const getSalesOverTime = async () =>
-  apiFetch("/admin/analytics/sales_over_time/");
-export const getNewUsers = async () => apiFetch("/admin/analytics/new_users/");
-export const getTopProducts = async () =>
-  apiFetch("/admin/analytics/top_products/");
+
+export const getDashboardStats = (range = "30") =>
+  apiFetch(`/admin/analytics/stats/?range=${range}`);
+
+export const getMonthlySales = (range = "30") =>
+  apiFetch(`/admin/analytics/monthly_sales/?range=${range}`);
+
+export const getSalesOverTime = (range = "30") =>
+  apiFetch(`/admin/analytics/sales_over_time/?range=${range}`);
+
+export const getProfitOverTime = (range = "30") =>
+  apiFetch(`/admin/analytics/profit_over_time/?range=${range}`);
+
+export const getProfit = (range = "30") =>
+  apiFetch(`/admin/analytics/profit/?range=${range}`);
+
+export const getOrderStatusSummary = (range = "30") =>
+  apiFetch(`/admin/analytics/order_status_summary/?range=${range}`);
+
+export const getTopProductsByCategory = (catId = "", range = "30") =>
+  apiFetch(
+    `/admin/analytics/top_products_by_category/?category=${catId}&range=${range}`
+  );
+
+export const getLowStockProducts = () => apiFetch(`/products/low_stock/`);
 
 /* ==========================================================
    🛍️ PRODUCTS
@@ -118,6 +132,24 @@ export async function deleteProductImage(imageId) {
   return apiFetch(`/product-images/${imageId}/`, { method: "DELETE" });
 }
 
+export const downloadSampleExcel = async () => {
+  const token = getAccessToken();
+
+  const res = await fetch(`${API_BASE}/products/download-sample-excel/`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to download Excel sample");
+  }
+
+  const blob = await res.blob();
+  return blob;
+};
+
 /* ==========================================================
    🗂️ CATEGORIES
 ========================================================== */
@@ -169,3 +201,32 @@ export const toggleStaff = async (id) =>
   apiFetch(`/admin/users/${id}/toggle_staff/`, { method: "POST" });
 export const promoteToOwner = async (id) =>
   apiFetch(`/admin/users/${id}/promote_to_owner/`, { method: "POST" });
+
+export const adminGetMessages = () => apiFetch("/contact/admin/messages/");
+export const adminGetMailingList = () =>
+  apiFetch("/contact/admin/mailing-list/");
+
+export const adminEmailBlast = (subject, body, emails) =>
+  apiFetch("/contact/admin/email-blast/", {
+    method: "POST",
+    body: JSON.stringify({ subject, body, emails }),
+  });
+
+export const adminReplyToMessage = (id, body) =>
+  apiFetch(`/contact/admin/message/${id}/reply/`, {
+    method: "POST",
+    body: JSON.stringify({
+      subject: "Re: Your message to Uncanny Valley",
+      body,
+    }),
+  });
+
+export const removeFromMailingList = (id) =>
+  apiFetch(`/contact/admin/mailing-list/${id}/`, {
+    method: "DELETE",
+  });
+
+export const adminDeleteSubscriber = (id) =>
+  apiFetch(`/contact/admin/mailing-list/${id}/delete/`, {
+    method: "DELETE",
+  });

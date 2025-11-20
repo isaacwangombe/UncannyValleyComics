@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Row, Col, Badge, Button, Table } from "react-bootstrap";
+import "../../../styles/admin-theme.css";
 
 const OrderDetailsModal = ({ show, onHide, order, backendUrl }) => {
   const [expandedImage, setExpandedImage] = useState(null);

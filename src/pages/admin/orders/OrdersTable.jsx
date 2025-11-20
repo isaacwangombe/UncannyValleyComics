@@ -1,5 +1,6 @@
 import React from "react";
 import { Table, Button, Badge } from "react-bootstrap";
+import "../../../styles/admin-theme.css";
 
 const statusColors = {
   pending: "warning",
@@ -16,7 +17,7 @@ const OrdersTable = ({ orders, onView }) => {
       <thead>
         <tr>
           <th>ID</th>
-          <th>Customer</th>
+          <th>Customer Email</th> {/* ✅ NEW LABEL */}
           <th>Phone</th>
           <th>Status</th>
           <th>Total</th>
@@ -25,31 +26,41 @@ const OrdersTable = ({ orders, onView }) => {
           <th>Actions</th>
         </tr>
       </thead>
+
       <tbody>
         {orders.length ? (
           orders.map((o) => {
-            // 🧠 Extract first/last name from shipping_address.user_info
-            const userInfo = o.shipping_address?.user_info || {};
-            const fullName =
-              [userInfo.first_name, userInfo.last_name]
-                .filter(Boolean)
-                .join(" ") ||
-              o.user?.email ||
-              "Guest";
+            // ✅ ALWAYS prioritise shipping email
+            const customerEmail =
+              o.shipping_address?.email || o.user?.email || "Guest";
 
             return (
               <tr key={o.id}>
                 <td>#{o.id}</td>
-                <td>{fullName}</td>
+
+                {/* CUSTOMER EMAIL */}
+                <td>{customerEmail}</td>
+
+                {/* PHONE */}
                 <td>{o.shipping_address?.phone || o.phone_number || "—"}</td>
+
+                {/* STATUS */}
                 <td>
                   <Badge bg={statusColors[o.status] || "secondary"}>
                     {o.status.charAt(0).toUpperCase() + o.status.slice(1)}
                   </Badge>
                 </td>
-                <td>${Number(o.total || 0).toFixed(2)}</td>
+
+                {/* TOTAL */}
+                <td>KES {Number(o.total || 0).toFixed(2)}</td>
+
+                {/* DATE */}
                 <td>{new Date(o.created_at).toLocaleString()}</td>
+
+                {/* ITEM COUNT */}
                 <td>{o.items?.length || 0}</td>
+
+                {/* ACTIONS */}
                 <td>
                   <Button
                     size="sm"

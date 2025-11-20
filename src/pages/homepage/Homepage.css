@@ -35,6 +35,7 @@
 
 .trending-now {
   background-color: rgb(238, 238, 238);
+  min-height: 790px;
 }
 
 .multicarousel-btn {

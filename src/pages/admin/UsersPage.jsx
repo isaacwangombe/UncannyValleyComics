@@ -9,7 +9,10 @@ import {
   Badge,
   Collapse,
 } from "react-bootstrap";
+
 import { getUsers, toggleStaff, promoteToOwner, api } from "../../apiAdmin";
+import { apiFetch } from "../../api"; // uses JWT & refresh
+import "../../styles/admin-theme.css";
 
 const UsersPage = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -19,21 +22,26 @@ const UsersPage = () => {
   const [showCustomers, setShowCustomers] = useState(false);
   const [customerPage, setCustomerPage] = useState(1);
   const [customerResults, setCustomerResults] = useState([]);
-  const [searchCustomers, setSearchCustomers] = useState([]); // ✅ new for search results
+  const [searchCustomers, setSearchCustomers] = useState([]);
   const [customerHasMore, setCustomerHasMore] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
 
   const load = async () => {
     setLoading(true);
+
     const [userRes, visitorRes, currentRes] = await Promise.all([
       getUsers(),
-      api.get("/admin/analytics/visitors/"),
+
+      // ✅ FIXED — uses apiFetch so it includes JWT token
+      apiFetch("/admin/analytics/visitors/"),
+
+      // This axios call is fine because `api` attaches Authorization
       api.get("/auth/user/"),
     ]);
 
     setAllUsers(userRes);
-    setVisitorStats(visitorRes.data);
+    setVisitorStats(visitorRes);
     setCurrentUser(currentRes.data);
     setLoading(false);
   };
@@ -55,7 +63,6 @@ const UsersPage = () => {
     }
   };
 
-  // 🔍 On search — also search customers from API
   const handleSearchChange = async (e) => {
     const query = e.target.value;
     setSearch(query);
@@ -66,9 +73,7 @@ const UsersPage = () => {
     }
 
     try {
-      const res = await api.get("/admin/users/", {
-        params: { search: query },
-      });
+      const res = await api.get("/admin/users/", { params: { search: query } });
       const customers = res.data.filter((u) => u.role === "Customer");
       setSearchCustomers(customers);
     } catch (err) {
@@ -126,10 +131,10 @@ const UsersPage = () => {
                 allowActions &&
                 currentUser &&
                 (currentUser.is_superuser || currentUser.role === "Owner") &&
-                currentUser.pk !== u.pk; // cannot edit self
+                currentUser.pk !== u.pk;
 
               return (
-                <tr key={u.id}>
+                <tr key={u.id || u.pk}>
                   <td>{u.email}</td>
                   <td>{u.username}</td>
                   <td>{u.role}</td>
@@ -186,7 +191,6 @@ const UsersPage = () => {
         </Col>
       </Row>
 
-      {/* --- Search --- */}
       <Row className="mb-3">
         <Col md={4}>
           <Form.Control
@@ -197,12 +201,10 @@ const UsersPage = () => {
         </Col>
       </Row>
 
-      {/* --- Role Tables --- */}
       {showSuperadmins && renderTable("Superadmins", superadmins)}
       {renderTable("Owners", owners)}
       {renderTable("Staff", staff)}
 
-      {/* --- Search Results for Customers --- */}
       {searchCustomers.length > 0 && (
         <>
           <h5 className="mt-4">Customer Search Results</h5>
@@ -210,7 +212,6 @@ const UsersPage = () => {
         </>
       )}
 
-      {/* --- Collapsible Customers --- */}
       <div className="mt-4">
         <Button
           variant="outline-primary"

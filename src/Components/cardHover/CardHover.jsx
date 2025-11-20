@@ -1,33 +1,41 @@
-import React, { useState } from "react";
-import "./CardHover.css";
+import React, { useCallback, useMemo, useState } from "react";
 import Button from "react-bootstrap/Button";
 import { useCart } from "../../contexts/CartContext";
+import { optimizeImage } from "../../utils/cloudinary";
+import "./CardHover.css";
 
 const formatKES = (v) => {
-  if (v === null || v === undefined) return "Kes 0.00";
-  return `Kes ${Number(v).toFixed(2)}`;
+  if (v === null || v === undefined) return "KES 0.00";
+  const n = Number(v || 0);
+  return `KES ${n.toFixed(2)}`;
 };
 
 const CardHover = ({ product }) => {
-  const imageUrl =
-    product?.images?.[0]?.image || "https://via.placeholder.com/400";
-
-  const effectivePrice = product?.discounted_price ?? product?.price ?? 0;
-  const hasDiscount =
-    product?.discounted_price !== null &&
-    product?.discounted_price !== undefined;
-
   const { addItem } = useCart();
+
+  const rawUrl = product?.images?.[0]?.image || null;
+  const imageUrl = useMemo(
+    () =>
+      rawUrl
+        ? optimizeImage(rawUrl, 300)
+        : "https://via.placeholder.com/400?text=No+Image",
+    [rawUrl]
+  );
+
+  const effectivePrice = useMemo(
+    () => product?.discounted_price ?? product?.price ?? 0,
+    [product?.discounted_price, product?.price]
+  );
+  const hasDiscount = product?.discounted_price != null;
 
   const [adding, setAdding] = useState(false);
   const [addedMsg, setAddedMsg] = useState("");
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = useCallback(async () => {
     try {
       setAdding(true);
       await addItem({ product_id: product.id, quantity: 1 });
       setAddedMsg("Added to cart");
-      // hide message after 1.2s
       setTimeout(() => setAddedMsg(""), 1200);
     } catch (err) {
       console.error("Add to cart failed", err);
@@ -36,17 +44,34 @@ const CardHover = ({ product }) => {
     } finally {
       setAdding(false);
     }
-  };
+  }, [addItem, product.id]);
 
   return (
-    <div className="card">
+    <div className="card hover-card">
       <div className="image">
-        <img src={imageUrl} alt={product.title} />
+        <img
+          src={imageUrl}
+          alt={product.title}
+          loading="lazy"
+          decoding="async"
+        />
       </div>
+
       <div className="details">
         <div className="center">
           <h1>{product.title}</h1>
-          <p>{product.description?.slice(0, 500)}...</p>
+
+          <p>
+            {product.event_data && (
+              <p className="text-warning fw-bold">
+                {new Date(product.event_data.start).toLocaleDateString("en-KE")}{" "}
+                · {product.event_data.location}
+              </p>
+            )}
+            {product.description?.slice(0, 120)}
+            {product.description?.length > 120 ? "…" : ""}
+          </p>
+
           <p>
             {hasDiscount ? (
               <>
@@ -98,4 +123,4 @@ const CardHover = ({ product }) => {
   );
 };
 
-export default CardHover;
+export default React.memo(CardHover);

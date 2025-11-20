@@ -1,26 +1,33 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Container, Row, Col, Button, Spinner, Badge } from "react-bootstrap";
 import { fetchProducts, fetchProductById, apiAddCartItem } from "../../api";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { optimizeImage } from "../../utils/cloudinary";
 
 const ProductDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
-  const [products, setProducts] = useState([]);
   const [mainImage, setMainImage] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [recommended, setRecommended] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const backendUrl = import.meta.env.VITE_API_URL_SHORT;
+  // resolve image and optimize
+  const resolveUrl = useCallback((img, w = 800) => {
+    if (!img) return null;
+    const url = typeof img === "string" ? img : img.image || img.image?.url;
+    if (!url) return null;
+    return optimizeImage(url, w);
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setQuantity(1); // ✅ Reset quantity when switching product
+    setQuantity(1);
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadData = async () => {
@@ -28,84 +35,95 @@ const ProductDetailPage = () => {
     try {
       const [prod, all] = await Promise.all([
         fetchProductById(id),
-        fetchProducts(),
+        fetchProducts({ page: 1 }),
       ]);
 
-      const cleanProduct = {
+      const clean = {
         ...prod,
         price: parseFloat(prod.price) || 0,
         discounted_price: parseFloat(prod.discounted_price) || 0,
-        cost: parseFloat(prod.cost) || 0,
       };
 
-      setProduct(cleanProduct);
-      setProducts(all.results || all);
+      setProduct(clean);
 
       if (prod.images?.length) {
-        setMainImage(resolveImageUrl(prod.images[0]));
+        setMainImage(resolveUrl(prod.images[0], 1000));
+      } else {
+        setMainImage(null);
       }
 
-      generateRecommendations(prod, all.results || all);
+      generateRecommendations(clean, all.results || all);
     } catch (err) {
       console.error("❌ Failed to load product details:", err);
+      setProduct(null);
+      setRecommended([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const resolveImageUrl = (img) => {
-    if (!img) return null;
-    if (typeof img === "string") {
-      return img.startsWith("http") ? img : backendUrl + img;
-    }
-    if (typeof img.image === "string") {
-      return img.image.startsWith("http") ? img.image : backendUrl + img.image;
-    }
-    return img.image?.url ? img.image.url : null;
-  };
-
-  const handleAddToCart = async () => {
+  const handleAddToCart = useCallback(async () => {
+    if (!product) return;
     try {
       await apiAddCartItem(product.id, quantity);
+      // quick feedback
       alert("✅ Added to cart!");
-      setQuantity(1); // ✅ Reset quantity after adding to cart
+      setQuantity(1);
     } catch (err) {
       console.error("❌ Failed to add to cart:", err);
-      alert("Failed to add item to cart");
+      alert("Failed to add to cart");
     }
-  };
+  }, [product, quantity]);
 
-  const generateRecommendations = (current, all) => {
-    if (!current) return [];
+  const generateRecommendations = useCallback((current, all = []) => {
+    if (!current || !Array.isArray(all)) {
+      setRecommended([]);
+      return;
+    }
 
-    // 1️⃣ same subcategory
+    // 1) same subcategory
     let recs = all.filter(
       (p) => p.id !== current.id && p.category === current.category
     );
 
-    // 2️⃣ same parent category
+    // 2) same parent
     if (recs.length < 3 && current.category_obj?.parent) {
-      const sameParent = all.filter(
-        (p) =>
-          p.id !== current.id &&
-          p.category_obj?.parent === current.category_obj?.parent
+      recs = recs.concat(
+        all.filter(
+          (p) =>
+            p.id !== current.id &&
+            p.category_obj?.parent === current.category_obj?.parent
+        )
       );
-      recs = [...recs, ...sameParent];
     }
 
-    // 3️⃣ similar title word
+    // 3) similar title
     if (recs.length < 3) {
-      const word = current.title.split(" ")[0].toLowerCase();
-      const nameRecs = all.filter(
-        (p) => p.id !== current.id && p.title.toLowerCase().includes(word)
-      );
-      recs = [...recs, ...nameRecs];
+      const word = (current.title || "").split(" ")[0]?.toLowerCase();
+      if (word) {
+        recs = recs.concat(
+          all.filter(
+            (p) =>
+              p.id !== current.id &&
+              (p.title || "").toLowerCase().includes(word)
+          )
+        );
+      }
     }
 
-    // Deduplicate & limit to 3
     const unique = Array.from(new Map(recs.map((p) => [p.id, p])).values());
     setRecommended(unique.slice(0, 3));
-  };
+  }, []);
+
+  const effective = useMemo(
+    () =>
+      product
+        ? product.discounted_price > 0
+          ? product.discounted_price
+          : product.price
+        : 0,
+    [product]
+  );
 
   if (loading) {
     return (
@@ -120,11 +138,6 @@ const ProductDetailPage = () => {
       <div className="text-center py-5 text-muted">Product not found.</div>
     );
   }
-
-  const effectivePrice =
-    product.discounted_price && product.discounted_price > 0
-      ? product.discounted_price
-      : product.price;
 
   return (
     <Container className="py-5">
@@ -153,6 +166,8 @@ const ProductDetailPage = () => {
                   objectFit: "contain",
                   borderRadius: "12px",
                 }}
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div
@@ -171,13 +186,12 @@ const ProductDetailPage = () => {
                 variant="light"
                 size="sm"
                 onClick={() => {
-                  const currentIndex = product.images.findIndex(
-                    (img) => resolveImageUrl(img) === mainImage
+                  const idx = product.images.findIndex(
+                    (img) => resolveUrl(img, 1000) === mainImage
                   );
-                  const prevIndex =
-                    (currentIndex - 1 + product.images.length) %
-                    product.images.length;
-                  setMainImage(resolveImageUrl(product.images[prevIndex]));
+                  const prev =
+                    (idx - 1 + product.images.length) % product.images.length;
+                  setMainImage(resolveUrl(product.images[prev], 1000));
                 }}
               >
                 <ChevronLeft size={16} />
@@ -188,14 +202,15 @@ const ProductDetailPage = () => {
                 style={{ gap: "8px", maxWidth: "85%" }}
               >
                 {product.images.map((img, i) => {
-                  const url = resolveImageUrl(img);
+                  const thumb = resolveUrl(img, 200);
+                  const full = resolveUrl(img, 1000);
                   return (
                     <div
                       key={i}
-                      onClick={() => setMainImage(url)}
+                      onClick={() => setMainImage(full)}
                       style={{
                         border:
-                          url === mainImage
+                          full === mainImage
                             ? "2px solid #007bff"
                             : "1px solid #ccc",
                         borderRadius: "8px",
@@ -204,13 +219,15 @@ const ProductDetailPage = () => {
                       }}
                     >
                       <img
-                        src={url}
-                        alt="thumb"
+                        src={thumb}
+                        alt={`thumb-${i}`}
                         style={{
                           width: "80px",
                           height: "80px",
                           objectFit: "cover",
                         }}
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   );
@@ -221,11 +238,11 @@ const ProductDetailPage = () => {
                 variant="light"
                 size="sm"
                 onClick={() => {
-                  const currentIndex = product.images.findIndex(
-                    (img) => resolveImageUrl(img) === mainImage
+                  const idx = product.images.findIndex(
+                    (img) => resolveUrl(img, 1000) === mainImage
                   );
-                  const nextIndex = (currentIndex + 1) % product.images.length;
-                  setMainImage(resolveImageUrl(product.images[nextIndex]));
+                  const next = (idx + 1) % product.images.length;
+                  setMainImage(resolveUrl(product.images[next], 1000));
                 }}
               >
                 <ChevronRight size={16} />
@@ -237,34 +254,47 @@ const ProductDetailPage = () => {
         {/* RIGHT COLUMN: DETAILS */}
         <Col md={6}>
           <h3 className="fw-bold">{product.title}</h3>
-
-          {product.discounted_price > 0 &&
-          product.discounted_price < product.price ? (
-            <div className="mb-2">
-              <h4 className="text-danger mb-0">
-                ${product.discounted_price.toFixed(2)}
-              </h4>
-              <small className="text-muted text-decoration-line-through">
-                ${product.price.toFixed(2)}
-              </small>
+          {/* EVENT DETAILS */}
+          {product.event_data && (
+            <div className="mb-3 p-3 border rounded bg-light">
+              <h5 className="fw-bold text-danger mb-2">Event Information</h5>
+              <p className="m-0">
+                <strong>Date:</strong>{" "}
+                {new Date(product.event_data.start).toLocaleDateString("en-KE")}
+              </p>
+              <p className="m-0">
+                <strong>Time:</strong>{" "}
+                {new Date(product.event_data.start).toLocaleTimeString(
+                  "en-KE",
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }
+                )}
+                {" – "}
+                {new Date(product.event_data.end).toLocaleTimeString("en-KE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+              <p className="m-0">
+                <strong>Location:</strong> {product.event_data.location}
+              </p>
             </div>
-          ) : (
-            <h4 className="mb-2">${product.price.toFixed(2)}</h4>
           )}
 
-          {product.stock > 0 ? (
-            <Badge bg="success" className="mb-2">
-              In Stock
-            </Badge>
-          ) : (
-            <Badge bg="secondary" className="mb-2">
-              Out of Stock
-            </Badge>
-          )}
+          <h4 className="mb-2">KES {Number(effective || 0).toFixed(2)}</h4>
+
+          <Badge
+            bg={product.stock > 0 ? "success" : "secondary"}
+            className="mb-2"
+          >
+            {product.stock > 0 ? "In Stock" : "Out of Stock"}
+          </Badge>
 
           <p className="mt-3">{product.description}</p>
 
-          {/* ✅ QUANTITY + ADD TO CART */}
+          {/* QUANTITY + ADD TO CART */}
           <div className="d-flex align-items-center mb-4 mt-4">
             <Button
               variant="light"
@@ -310,12 +340,10 @@ const ProductDetailPage = () => {
       <Row>
         {recommended.length ? (
           recommended.map((rec) => {
-            const imgUrl = resolveImageUrl(rec.images?.[0]);
+            const imgUrl = resolveUrl(rec.images?.[0], 300);
             const recEffective =
-              parseFloat(
-                rec.discounted_price && rec.discounted_price > 0
-                  ? rec.discounted_price
-                  : rec.price
+              Number(
+                rec.discounted_price > 0 ? rec.discounted_price : rec.price
               ) || 0;
             return (
               <Col key={rec.id} md={4} sm={6} xs={12} className="mb-4">
@@ -323,28 +351,21 @@ const ProductDetailPage = () => {
                   className="card h-100 shadow-sm"
                   style={{ cursor: "pointer", transition: "0.2s" }}
                   onClick={() => navigate(`/product/${rec.id}`)}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "scale(1.02)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "scale(1.0)")
-                  }
                 >
                   {imgUrl && (
                     <img
                       src={imgUrl}
                       className="card-img-top"
-                      style={{
-                        height: "220px",
-                        objectFit: "cover",
-                      }}
+                      style={{ height: "220px", objectFit: "cover" }}
                       alt={rec.title}
+                      loading="lazy"
+                      decoding="async"
                     />
                   )}
                   <div className="card-body">
                     <h6 className="card-title">{rec.title}</h6>
                     <p className="mb-1 text-muted">
-                      ${recEffective.toFixed(2)}
+                      KES {recEffective.toFixed(2)}
                     </p>
                   </div>
                 </div>

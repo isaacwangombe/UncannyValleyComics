@@ -3,7 +3,7 @@ import React from "react";
 import Sidebar from "./Sidebar";
 import AdminNavbar from "./AdminNavbar";
 import { Container } from "react-bootstrap";
-
+import "../../styles/admin-theme.css";
 const AdminLayout = ({ children }) => {
   return (
     <div className="d-flex" style={{ minHeight: "100vh" }}>

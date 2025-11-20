@@ -1,4 +1,4 @@
-// 🌍 Backend base URL (auto-switch local vs production)
+// 🌍 Backend base URL (local vs production)
 export const BACKEND_BASE =
   import.meta.env.MODE === "production"
     ? "https://uncanny-valley-comics-backend.onrender.com"
@@ -28,7 +28,7 @@ export function clearTokens() {
   localStorage.removeItem("refresh_token");
 }
 
-// ✅ Refresh JWT if access token is expired
+// 🔄 Refresh JWT
 export async function refreshAccessToken() {
   const refresh = getRefreshToken();
   if (!refresh) return null;
@@ -47,15 +47,45 @@ export async function refreshAccessToken() {
 
   const data = await res.json();
   saveTokens({ access: data.access });
-  console.log("🔄 Access token refreshed");
   return data.access;
 }
 
 /* ==========================================================
-   🔁 UNIVERSAL FETCH WRAPPER (JWT-based)
+   🔁 UNIVERSAL FETCH WRAPPER
+   - Adds Authorization
+   - Auto-refreshes expired access token
+   - Includes local caching for heavy endpoints
 ========================================================== */
 
-export async function apiFetch(endpoint, options = {}) {
+const CACHE_TTL = 60 * 1000; // 1 minute
+
+function getCache(key) {
+  const item = sessionStorage.getItem(key);
+  if (!item) return null;
+
+  const parsed = JSON.parse(item);
+  if (Date.now() - parsed.timestamp > CACHE_TTL) {
+    sessionStorage.removeItem(key);
+    return null;
+  }
+  return parsed.data;
+}
+
+function setCache(key, data) {
+  sessionStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data }));
+}
+
+export async function apiFetch(
+  endpoint,
+  options = {},
+  { cacheKey = null } = {}
+) {
+  // Serve cache when available
+  if (cacheKey) {
+    const cached = getCache(cacheKey);
+    if (cached) return cached;
+  }
+
   let token = getAccessToken();
 
   const headers = {
@@ -64,19 +94,20 @@ export async function apiFetch(endpoint, options = {}) {
     "Content-Type": "application/json",
   };
 
-  let res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  let res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
 
-  // Try refresh if unauthorized
+  // Auto-refresh on 401
   if (res.status === 401 && getRefreshToken()) {
-    console.log("🔁 Access expired, refreshing...");
     const newToken = await refreshAccessToken();
     if (newToken) {
       res = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
-        headers: {
-          ...headers,
-          Authorization: `Bearer ${newToken}`,
-        },
+        headers: { ...headers, Authorization: `Bearer ${newToken}` },
+        credentials: "include",
       });
     } else {
       throw new Error("Unauthorized — please log in again.");
@@ -85,19 +116,19 @@ export async function apiFetch(endpoint, options = {}) {
 
   if (!res.ok) {
     const text = await res.text();
-    console.error(`❌ Request failed (${res.status}):`, text);
     throw new Error(`Request failed (${res.status}): ${text}`);
   }
 
-  if (res.status === 204) return {};
-  return res.json();
+  const json = res.status === 204 ? {} : await res.json();
+
+  if (cacheKey) setCache(cacheKey, json);
+  return json;
 }
 
 /* ==========================================================
-   👤 AUTHENTICATION ENDPOINTS
+   👤 AUTH API
 ========================================================== */
 
-// ✅ Login (JWT)
 export async function loginUser(email, password) {
   const res = await fetch(`${API_BASE}/auth/token/`, {
     method: "POST",
@@ -105,134 +136,109 @@ export async function loginUser(email, password) {
     body: JSON.stringify({ username: email, password }),
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("❌ Login failed:", text);
-    throw new Error("Invalid credentials");
-  }
+  if (!res.ok) throw new Error("Invalid credentials");
 
   const data = await res.json();
   saveTokens(data);
-  console.log("✅ Logged in and tokens saved");
   return data;
 }
 
 export async function logoutUser() {
   try {
-    // Tell backend to clear Django session
     await fetch(`${API_BASE}/auth/full-logout/`, {
       method: "POST",
       credentials: "include",
     });
-  } catch (err) {
-    console.warn("⚠️ Backend logout failed (likely already logged out)");
-  }
+  } catch (err) {}
 
-  // Clear tokens and frontend session
   localStorage.clear();
-  console.log("👋 Logged out fully");
-  window.dispatchEvent(new Event("storage")); // refresh Navbar
-  window.location.replace("/login"); // hard reload
+  window.dispatchEvent(new Event("storage"));
+  window.location.replace("/login");
 }
 
-// ✅ Get current user
 export async function fetchCurrentUser() {
-  const token = localStorage.getItem("access_token");
-
-  if (!token) {
-    console.log("⚠️ No token found — user not logged in");
-    return null;
-  }
+  const token = getAccessToken();
+  if (!token) return null;
 
   const res = await fetch(`${API_BASE}/auth/user/`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (res.status === 401) {
-    console.warn("🔄 Access token expired — attempting refresh...");
     const refreshed = await refreshAccessToken();
-    if (refreshed) return await fetchCurrentUser();
-    return null;
+    return refreshed ? await fetchCurrentUser() : null;
   }
 
-  if (!res.ok) {
-    console.error("❌ Failed to fetch user:", res.status);
-    return null;
-  }
-
-  return await res.json();
+  if (!res.ok) return null;
+  return res.json();
 }
 
 /* ==========================================================
    🛒 CART API
 ========================================================== */
 
-export async function apiGetCart() {
-  return apiFetch("/cart/");
-}
+export const apiGetCart = () => apiFetch("/cart/");
 
-export async function apiAddCartItem(productId, quantity = 1) {
-  return apiFetch("/cart/add_item/", {
+export const apiAddCartItem = (productId, quantity = 1) =>
+  apiFetch("/cart/add_item/", {
     method: "POST",
     body: JSON.stringify({ product_id: productId, quantity }),
   });
-}
 
-export async function apiRemoveCartItem(itemId) {
-  return apiFetch("/cart/remove_item/", {
+export const apiRemoveCartItem = (itemId) =>
+  apiFetch("/cart/remove_item/", {
     method: "POST",
     body: JSON.stringify({ item_id: itemId }),
   });
-}
 
-export async function apiIncreaseCartItem(productId) {
-  return apiFetch("/cart/increase_item/", {
+export const apiIncreaseCartItem = (productId) =>
+  apiFetch("/cart/increase_item/", {
     method: "POST",
     body: JSON.stringify({ product_id: productId }),
   });
-}
 
-export async function apiDecreaseCartItem(productId) {
-  return apiFetch("/cart/decrease_item/", {
+export const apiDecreaseCartItem = (productId) =>
+  apiFetch("/cart/decrease_item/", {
     method: "POST",
     body: JSON.stringify({ product_id: productId }),
   });
-}
 
-export async function apiCartCheckout(data) {
-  return apiFetch("/cart/checkout/", {
+export const apiCartCheckout = (data) =>
+  apiFetch("/cart/checkout/", {
     method: "POST",
     body: JSON.stringify(data),
   });
-}
 
 /* ==========================================================
-   🛍️ PRODUCT & CATEGORY API
+   🛍 PRODUCTS & CATEGORIES
+   (Fully optimized caching!)
 ========================================================== */
 
-export async function fetchCategories() {
-  return apiFetch("/categories/");
+export function fetchCategories() {
+  return apiFetch("/categories/", {}, { cacheKey: "categories" });
 }
 
-export async function fetchProducts({
+export function fetchProducts({
   page = 1,
   category = null,
   subcategory = null,
   q = "",
 } = {}) {
   let url = `/products/?page=${page}`;
+
   if (subcategory) url += `&category=${subcategory}`;
   else if (category) url += `&category__parent=${category}`;
   if (q) url += `&search=${encodeURIComponent(q)}`;
-  return apiFetch(url);
+
+  const cacheKey = `products:${url}`;
+  return apiFetch(url, {}, { cacheKey });
 }
 
-export async function fetchTrendingProducts(parentSlug = null) {
+export function fetchTrendingProducts(parentSlug = null) {
   let url = `/products/?trending=true`;
   if (parentSlug) url += `&category__parent__slug=${parentSlug}`;
-  return apiFetch(url);
+
+  return apiFetch(url, {}, { cacheKey: `trending:${parentSlug || "all"}` });
 }
 
 export const fetchProductById = async (id) => {
@@ -247,26 +253,36 @@ export const fetchProductById = async (id) => {
    💳 ORDERS
 ========================================================== */
 
-export async function apiGetOrders() {
-  return apiFetch("/orders/");
-}
+export const apiGetOrders = () =>
+  apiFetch("/orders/", {}, { cacheKey: "orders" });
 
-export async function apiGetOrderDetail(id) {
-  return apiFetch(`/orders/${id}/`);
-}
+export const apiGetOrderDetail = (id) => apiFetch(`/orders/${id}/`);
 
 /* ==========================================================
-   🌐 GOOGLE LOGIN (JWT version)
+   🌐 GOOGLE LOGIN
 ========================================================== */
 
 export async function apiGoogleLoginRedirect() {
-  const url = `${BACKEND_BASE}/accounts/google/login/?process=login`;
-  window.location.href = url;
+  window.location.href = `${BACKEND_BASE}/accounts/google/login/?process=login`;
 }
 
 export function completeGoogleLogin(access, refresh) {
-  localStorage.setItem("access_token", access);
-  localStorage.setItem("refresh_token", refresh);
-  console.log("✅ Google login successful, tokens saved");
+  saveTokens({ access, refresh });
   window.location.href = "/";
 }
+
+/* ==========================================================
+   ✉️ CONTACT FORM
+========================================================== */
+
+export const apiSendMessage = (data) =>
+  apiFetch("/contact/send/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const subscribeToMailingList = ({ email, first_name, last_name }) =>
+  apiFetch("/contact/subscribe/", {
+    method: "POST",
+    body: JSON.stringify({ email, first_name, last_name }),
+  });

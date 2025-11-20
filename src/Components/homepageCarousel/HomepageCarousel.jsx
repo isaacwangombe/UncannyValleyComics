@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Carousel from "react-bootstrap/Carousel";
 import Button from "react-bootstrap/Button";
@@ -12,23 +12,25 @@ const HomepageCarousel = ({ onShopClick }) => {
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
 
-  const handleSelect = (selectedIndex) => {
-    setIndex(selectedIndex);
-  };
+  const handleSelect = useCallback(
+    (selectedIndex) => setIndex(selectedIndex),
+    []
+  );
 
-  // 🔗 Navigate to the shop, optionally to a specific category slug
-  const handleShop = (slug = null) => {
-    if (onShopClick) {
-      onShopClick(slug); // allow parent override
-    } else {
-      if (slug) navigate(`/store?category=${encodeURIComponent(slug)}`);
-      else navigate("/store");
-    }
-  };
+  // navigate helper which prefers parent's callback
+  const handleShop = useCallback(
+    (slug = null) => {
+      if (onShopClick) return onShopClick(slug);
+      if (slug) return navigate(`/store?category=${encodeURIComponent(slug)}`);
+      return navigate("/store");
+    },
+    [navigate, onShopClick]
+  );
 
-  const handleCommunity = () => {
-    navigate("/store?category=events");
-  };
+  const handleCommunity = useCallback(
+    () => navigate("/store?category=events"),
+    [navigate]
+  );
 
   return (
     <div>
@@ -37,11 +39,15 @@ const HomepageCarousel = ({ onShopClick }) => {
         activeIndex={index}
         onSelect={handleSelect}
       >
-        {/* Slide 1 - Comics */}
         <Carousel.Item interval={10000}>
-          <img className="d-block w-100 " src={photo1} alt="First slide" />
+          <img
+            className="d-block w-100"
+            src={photo1}
+            alt="Comics slide"
+            loading="lazy"
+          />
           <Carousel.Caption>
-            <h3 className="font-large mona-sans-base ">
+            <h3 className="font-large mona-sans-base">
               Explore the <span className="mona-sans-italic">hottest</span>{" "}
               comics
             </h3>
@@ -66,11 +72,15 @@ const HomepageCarousel = ({ onShopClick }) => {
           </Carousel.Caption>
         </Carousel.Item>
 
-        {/* Slide 2 - Merchandise */}
         <Carousel.Item interval={10000}>
-          <img className="d-block w-100" src={photo2} alt="Second slide" />
+          <img
+            className="d-block w-100"
+            src={photo2}
+            alt="Merch slide"
+            loading="lazy"
+          />
           <Carousel.Caption>
-            <h3 className="font-large mona-sans-base ">
+            <h3 className="font-large mona-sans-base">
               Discover <span className="mona-sans-italic">awesome</span> merch
             </h3>
             <div className="d-flex gap-2 mb-2">
@@ -94,11 +104,15 @@ const HomepageCarousel = ({ onShopClick }) => {
           </Carousel.Caption>
         </Carousel.Item>
 
-        {/* Slide 3 - Community */}
         <Carousel.Item interval={10000}>
-          <img className="d-block w-100" src={photo3} alt="Third slide" />
+          <img
+            className="d-block w-100"
+            src={photo3}
+            alt="Community slide"
+            loading="lazy"
+          />
           <Carousel.Caption>
-            <h3 className="font-large mona-sans-base ">
+            <h3 className="font-large mona-sans-base">
               Join our <span className="mona-sans-italic">vibrant</span>{" "}
               community
             </h3>
@@ -127,4 +141,4 @@ const HomepageCarousel = ({ onShopClick }) => {
   );
 };
 
-export default HomepageCarousel;
+export default React.memo(HomepageCarousel);

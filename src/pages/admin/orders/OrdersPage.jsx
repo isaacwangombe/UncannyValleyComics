@@ -3,6 +3,7 @@ import { Button, Container, Form, Row, Col, Spinner } from "react-bootstrap";
 import { apiGetOrders } from "../../../api";
 import OrdersTable from "./OrdersTable";
 import OrderDetailsModal from "./OrderDetailsModal";
+import "../../../styles/admin-theme.css";
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState([]);

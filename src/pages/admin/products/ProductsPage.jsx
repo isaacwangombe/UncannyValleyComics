@@ -1,3 +1,4 @@
+// src/admin/products/ProductsPage.jsx
 import React, { useEffect, useState } from "react";
 import { Button, Container, Form, Row, Col, Spinner } from "react-bootstrap";
 import { fetchProducts, fetchCategories } from "../../../api";
@@ -8,7 +9,10 @@ import {
   deleteProductImage,
   toggleProductTrending,
   bulkUploadProducts,
+  downloadSampleExcel,
+  deleteProduct, // <<-- added import
 } from "../../../apiAdmin";
+import "../../../styles/admin-theme.css";
 
 import ProductTable from "./ProductTable";
 import ProductFormModal from "./ProductFormModal";
@@ -76,6 +80,22 @@ const ProductsPage = () => {
     } catch (err) {
       console.error("❌ Bulk upload failed:", err);
       alert("Upload failed: " + (err?.message || err));
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this product?"))
+      return;
+
+    try {
+      await deleteProduct(id);
+      // remove from local state quickly for UX (or just reload)
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      // optionally reload to ensure consistency
+      // await loadData();
+    } catch (err) {
+      console.error("❌ Delete failed:", err);
+      alert("Failed to delete product.");
     }
   };
 
@@ -153,6 +173,26 @@ const ProductsPage = () => {
           </Form.Group>
 
           <Button onClick={handleBulkUpload}>Upload Products</Button>
+          <Button
+            variant="secondary"
+            className="mt-2"
+            onClick={async () => {
+              try {
+                const blob = await downloadSampleExcel();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "sample_products.xlsx";
+                a.click();
+                window.URL.revokeObjectURL(url);
+              } catch (err) {
+                console.error("Failed to download excel:", err);
+                alert("Could not download sample Excel.");
+              }
+            }}
+          >
+            Download Sample Excel
+          </Button>
         </Col>
       </Row>
 
@@ -267,6 +307,7 @@ const ProductsPage = () => {
               alert("Failed to toggle trending");
             }
           }}
+          onDelete={handleDeleteProduct} // <<-- pass handler
           backendUrl={backendUrl}
         />
       )}

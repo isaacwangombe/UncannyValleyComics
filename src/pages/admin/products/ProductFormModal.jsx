@@ -1,5 +1,9 @@
+// ProductFormModal.jsx
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
+import "../../../styles/admin-theme.css";
+
+const UPCOMING_CATEGORY_ID = 10; // 🔥 Hard-coded as requested
 
 const ProductFormModal = ({
   show,
@@ -27,31 +31,72 @@ const ProductFormModal = ({
     is_active: true,
   });
 
-  // local copy of selectedProduct so we can mutate images without touching parent until saved
-  const [localProduct, setLocalProduct] = useState(null);
+  const [isEvent, setIsEvent] = useState(false);
 
-  const [selectedImages, setSelectedImages] = useState([]); // new uploads
+  const [eventFields, setEventFields] = useState({
+    start: "",
+    end: "",
+    location: "",
+  });
+
+  const [localProduct, setLocalProduct] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
   const [saving, setSaving] = useState(false);
 
+  // 🔍 category lookup
+  const getUpcomingCategory = () =>
+    subCategories.find((c) => c.id === UPCOMING_CATEGORY_ID);
+
+  // ───────────────────────────────────────────────
+  // LOAD PRODUCT FOR EDIT
+  // ───────────────────────────────────────────────
   useEffect(() => {
     if (selectedProduct) {
       const subCat = categories.find((c) => c.id === selectedProduct.category);
       const mainCat = subCat?.parent || "";
-      setFormData({
+
+      const hasEvent = !!selectedProduct.event_data;
+      setIsEvent(hasEvent);
+
+      // Load event details
+      if (hasEvent) {
+        const up = getUpcomingCategory();
+        if (up) {
+          setFormData((prev) => ({
+            ...prev,
+            mainCategory: up.parent,
+            category: up.id,
+          }));
+        }
+
+        setEventFields({
+          start: selectedProduct.event_data?.start || "",
+          end: selectedProduct.event_data?.end || "",
+          location: selectedProduct.event_data?.location || "",
+        });
+      }
+
+      setFormData((prev) => ({
+        ...prev,
         id: selectedProduct.id,
         title: selectedProduct.title || "",
         description: selectedProduct.description || "",
-        mainCategory: mainCat,
-        category: selectedProduct.category || "",
+        mainCategory: hasEvent ? prev.mainCategory : mainCat,
+        category: hasEvent ? prev.category : selectedProduct.category || "",
         price: selectedProduct.price ?? "",
         cost: selectedProduct.cost ?? "",
         discounted_price: selectedProduct.discounted_price ?? "",
         stock: selectedProduct.stock ?? 0,
         is_active: selectedProduct.is_active ?? true,
-      });
+      }));
+
       setLocalProduct(JSON.parse(JSON.stringify(selectedProduct)));
       setSelectedImages([]);
     } else {
+      // NEW PRODUCT
+      setIsEvent(false);
+      setEventFields({ start: "", end: "", location: "" });
+
       setFormData({
         title: "",
         description: "",
@@ -63,47 +108,60 @@ const ProductFormModal = ({
         stock: "",
         is_active: true,
       });
+
       setLocalProduct(null);
       setSelectedImages([]);
     }
   }, [selectedProduct, categories]);
 
-  const handleDeleteExistingImage = async (imgId) => {
-    if (!window.confirm("Delete this image permanently?")) return;
-    try {
-      await deleteProductImage(imgId);
-      // remove locally so user sees instant change
-      setLocalProduct((prev) => ({
-        ...prev,
-        images: (prev.images || []).filter((i) => i.id !== imgId),
-      }));
-    } catch (err) {
-      console.error("Failed to delete image:", err);
-      alert("Failed to delete image.");
+  // ───────────────────────────────────────────────
+  // EVENT TOGGLE HANDLER
+  // ───────────────────────────────────────────────
+  const handleEventToggle = (checked) => {
+    setIsEvent(checked);
+
+    if (checked) {
+      const up = getUpcomingCategory();
+      if (up) {
+        setFormData((prev) => ({
+          ...prev,
+          mainCategory: up.parent,
+          category: up.id,
+        }));
+      }
     }
   };
 
-  const handleRemoveNewImage = (idx) => {
-    setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
-  };
-
+  // ───────────────────────────────────────────────
+  // SAVE PRODUCT
+  // ───────────────────────────────────────────────
   const handleSave = async () => {
     setSaving(true);
+
     try {
-      // build payload - ensure numeric fields are proper types or blank -> backend handles coercion
       const payload = {
         title: formData.title,
         description: formData.description,
         category: formData.category || null,
-        price: formData.price !== "" ? Number(formData.price) : null,
-        cost: formData.cost !== "" ? Number(formData.cost) : null,
-        discounted_price:
-          formData.discounted_price !== ""
-            ? Number(formData.discounted_price)
-            : null,
-        stock: formData.stock !== "" ? Number(formData.stock) : 0,
+        price: formData.price ? Number(formData.price) : null,
+        cost: formData.cost ? Number(formData.cost) : null,
+        discounted_price: formData.discounted_price
+          ? Number(formData.discounted_price)
+          : null,
+        stock: formData.stock ? Number(formData.stock) : 0,
         is_active: !!formData.is_active,
       };
+
+      // Event payload
+      if (isEvent) {
+        payload.event_data = {
+          start: eventFields.start
+            ? new Date(eventFields.start).toISOString()
+            : null,
+          end: eventFields.end ? new Date(eventFields.end).toISOString() : null,
+          location: eventFields.location || "",
+        };
+      }
 
       let product;
       if (formData.id) {
@@ -112,127 +170,252 @@ const ProductFormModal = ({
         product = await apiAddProduct(payload);
       }
 
-      // upload new images (if any)
+      // Upload new images
       for (const file of selectedImages) {
-        try {
-          await uploadProductImage(product.id, file);
-        } catch (err) {
-          console.error("Upload image failed for", file.name, err);
-        }
+        await uploadProductImage(product.id, file);
       }
 
-      // finished
-      onSaved && onSaved();
-      onHide && onHide();
+      onSaved?.();
+      onHide?.();
     } catch (err) {
-      console.error("Save failed:", err);
-      alert("Save failed: " + (err?.message || err));
+      alert("Save failed: " + err.message);
     } finally {
       setSaving(false);
     }
   };
 
+  // ───────────────────────────────────────────────
+  // IMAGE HELPERS
+  // ───────────────────────────────────────────────
   const imageUrlFor = (img) => {
     if (!img) return null;
     if (typeof img.image === "string") {
       if (img.image.startsWith("http")) return img.image;
       return backendUrl + img.image;
-    } else if (img.image?.url) {
-      return img.image.url;
     }
-    return null;
+    return img.image?.url || null;
   };
 
+  // ───────────────────────────────────────────────
+  // DELETE EXISTING IMAGE
+  // ───────────────────────────────────────────────
+  const handleDeleteExistingImage = async (imgId) => {
+    if (!window.confirm("Delete this image permanently?")) return;
+
+    try {
+      await deleteProductImage(imgId);
+
+      setLocalProduct((prev) => ({
+        ...prev,
+        images: (prev.images || []).filter((i) => i.id !== imgId),
+      }));
+    } catch (err) {
+      alert("Failed to delete image");
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // UI
+  // ------------------------------------------------------------------
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
       <Modal.Header closeButton>
         <Modal.Title>
-          {formData.id ? "Edit Product" : "Add New Product"}
+          {formData.id ? "Edit Product" : "Add Product"}
         </Modal.Title>
       </Modal.Header>
+
       <Modal.Body>
         <Form>
+          {/* ─────────────────────────────────────────────── */}
+          {/* 🔥 EVENT FIRST */}
+          {/* ─────────────────────────────────────────────── */}
           <Row className="mb-3">
             <Col md={6}>
-              <Form.Group>
-                <Form.Label>Title</Form.Label>
-                <Form.Control
-                  value={formData.title}
+              <Form.Check
+                type="switch"
+                label="Is Event?"
+                checked={isEvent}
+                onChange={(e) => handleEventToggle(e.target.checked)}
+              />
+            </Col>
+
+            <Col md={6}>
+              <Form.Check
+                type="switch"
+                label="Active"
+                checked={formData.is_active}
+                onChange={(e) =>
+                  setFormData({ ...formData, is_active: e.target.checked })
+                }
+              />
+            </Col>
+          </Row>
+
+          {/* ─────────────────────────────────────────────── */}
+          {/* CATEGORY (HIDDEN WHEN EVENT) */}
+          {/* ─────────────────────────────────────────────── */}
+          {!isEvent && (
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Label>Main Category</Form.Label>
+                <Form.Select
+                  value={formData.mainCategory}
                   onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
+                    setFormData({
+                      ...formData,
+                      mainCategory: e.target.value,
+                      category: "",
+                    })
                   }
-                  required
-                />
-              </Form.Group>
+                >
+                  <option value="">Select</option>
+                  {mainCategories.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              <Col md={6}>
+                <Form.Label>Subcategory</Form.Label>
+                <Form.Select
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                >
+                  <option value="">Select</option>
+                  {subCategories
+                    .filter(
+                      (s) =>
+                        !formData.mainCategory ||
+                        s.parent === parseInt(formData.mainCategory)
+                    )
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                </Form.Select>
+              </Col>
+            </Row>
+          )}
+
+          {/* ─────────────────────────────────────────────── */}
+          {/* EVENT FIELDS */}
+          {/* ─────────────────────────────────────────────── */}
+          {isEvent && (
+            <>
+              <hr />
+              <h5>Event Details</h5>
+
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Form.Label>Start</Form.Label>
+                  <Form.Control
+                    type="datetime-local"
+                    value={eventFields.start}
+                    onChange={(e) =>
+                      setEventFields({ ...eventFields, start: e.target.value })
+                    }
+                  />
+                </Col>
+
+                <Col md={6}>
+                  <Form.Label>End</Form.Label>
+                  <Form.Control
+                    type="datetime-local"
+                    value={eventFields.end}
+                    onChange={(e) =>
+                      setEventFields({ ...eventFields, end: e.target.value })
+                    }
+                  />
+                </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col md={12}>
+                  <Form.Label>Location</Form.Label>
+                  <Form.Control
+                    value={eventFields.location}
+                    onChange={(e) =>
+                      setEventFields({
+                        ...eventFields,
+                        location: e.target.value,
+                      })
+                    }
+                  />
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {/* ─────────────────────────────────────────────── */}
+          {/* BASIC PRODUCT FIELDS */}
+          {/* ─────────────────────────────────────────────── */}
+          <Row className="mb-3">
+            <Col md={6}>
+              <Form.Label>Title</Form.Label>
+              <Form.Control
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+              />
             </Col>
 
             <Col md={3}>
-              <Form.Group>
-                <Form.Label>Cost</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  value={formData.cost === null ? "" : formData.cost}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cost: e.target.value })
-                  }
-                />
-              </Form.Group>
+              <Form.Label>Cost</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                value={formData.cost || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, cost: e.target.value })
+                }
+              />
             </Col>
 
             <Col md={3}>
-              <Form.Group>
-                <Form.Label>Price</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  value={formData.price === null ? "" : formData.price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, price: e.target.value })
-                  }
-                  required
-                />
-              </Form.Group>
+              <Form.Label>Price</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                value={formData.price || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
+              />
             </Col>
           </Row>
 
           <Row className="mb-3">
             <Col md={6}>
-              <Form.Group>
-                <Form.Label>Discounted Price</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  value={
-                    formData.discounted_price === null
-                      ? ""
-                      : formData.discounted_price
-                  }
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      discounted_price: e.target.value,
-                    })
-                  }
-                />
-                <Form.Text className="text-muted">
-                  Leave blank or 0 to disable discount (backend logic may treat
-                  0 as no-discount depending on settings).
-                </Form.Text>
-              </Form.Group>
+              <Form.Label>Discounted Price</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                value={formData.discounted_price || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    discounted_price: e.target.value,
+                  })
+                }
+              />
             </Col>
 
             <Col md={6}>
-              <Form.Group>
-                <Form.Label>Stock</Form.Label>
-                <Form.Control
-                  type="number"
-                  value={formData.stock}
-                  onChange={(e) =>
-                    setFormData({ ...formData, stock: e.target.value })
-                  }
-                />
-              </Form.Group>
+              <Form.Label>Stock</Form.Label>
+              <Form.Control
+                type="number"
+                value={formData.stock}
+                onChange={(e) =>
+                  setFormData({ ...formData, stock: e.target.value })
+                }
+              />
             </Col>
           </Row>
 
@@ -248,77 +431,14 @@ const ProductFormModal = ({
             />
           </Form.Group>
 
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Main Category</Form.Label>
-                <Form.Select
-                  value={formData.mainCategory}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      mainCategory: e.target.value,
-                      category: "",
-                    })
-                  }
-                >
-                  <option value="">Select Main Category</option>
-                  {mainCategories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Col>
-
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Subcategory</Form.Label>
-                <Form.Select
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData({ ...formData, category: e.target.value })
-                  }
-                >
-                  <option value="">Select Subcategory</option>
-                  {subCategories
-                    .filter(
-                      (s) =>
-                        !formData.mainCategory ||
-                        s.parent === parseInt(formData.mainCategory)
-                    )
-                    .map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-
-          <Row className="mb-3 align-items-center">
-            <Col md={6}>
-              <Form.Check
-                type="switch"
-                label="Active"
-                checked={!!formData.is_active}
-                onChange={(e) =>
-                  setFormData({ ...formData, is_active: e.target.checked })
-                }
-              />
-            </Col>
-          </Row>
-
-          {/* Existing images */}
+          {/* ─────────────────────────────────────────────── */}
+          {/* EXISTING IMAGES */}
+          {/* ─────────────────────────────────────────────── */}
           {localProduct?.images?.length > 0 && (
             <>
               <hr />
-              <div className="mb-2">
-                <strong>Existing Images</strong>
-              </div>
-              <div className="d-flex flex-wrap mb-3">
+              <h6>Existing Images</h6>
+              <div className="d-flex flex-wrap">
                 {localProduct.images.map((img) => {
                   const url = imageUrlFor(img);
                   return (
@@ -331,31 +451,23 @@ const ProductFormModal = ({
                         borderRadius: "8px",
                         border: "1px solid #ccc",
                         overflow: "hidden",
-                        background: "#f8f9fa",
-                        cursor: "pointer",
                       }}
                     >
                       {url && (
                         <img
                           src={url}
-                          alt={img.alt || "Product image"}
+                          alt=""
                           style={{
                             width: "100%",
                             height: "100%",
                             objectFit: "cover",
                           }}
-                          onClick={() => window.open(url, "_blank")}
                         />
                       )}
                       <Button
                         size="sm"
                         variant="danger"
                         className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          fontSize: "12px",
-                        }}
                         onClick={() => handleDeleteExistingImage(img.id)}
                       >
                         ×
@@ -367,78 +479,23 @@ const ProductFormModal = ({
             </>
           )}
 
-          {/* Upload new images */}
-          <Form.Group>
-            <Form.Label>Upload Images (new)</Form.Label>
+          {/* ─────────────────────────────────────────────── */}
+          {/* NEW IMAGES */}
+          {/* ─────────────────────────────────────────────── */}
+          <Form.Group className="mt-3">
+            <Form.Label>Upload New Images</Form.Label>
             <Form.Control
               type="file"
               accept="image/*"
               multiple
-              onChange={(e) => {
-                const files = Array.from(e.target.files || []);
-                if (!files.length) return;
-                setSelectedImages((prev) => {
-                  const existing = new Set(prev.map((f) => f.name + f.size));
-                  const unique = files.filter(
-                    (f) => !existing.has(f.name + f.size)
-                  );
-                  return [...prev, ...unique];
-                });
-                e.target.value = "";
-              }}
+              onChange={(e) =>
+                setSelectedImages([
+                  ...selectedImages,
+                  ...Array.from(e.target.files),
+                ])
+              }
             />
           </Form.Group>
-
-          {/* Preview new uploads */}
-          {selectedImages.length > 0 && (
-            <>
-              <div className="mt-3 mb-2">
-                <strong>New Images (will be uploaded on Save)</strong>
-              </div>
-              <div className="d-flex flex-wrap mb-3">
-                {selectedImages.map((file, idx) => {
-                  const previewUrl = URL.createObjectURL(file);
-                  return (
-                    <div
-                      key={idx + file.name}
-                      className="position-relative me-2 mb-2"
-                      style={{
-                        width: "100px",
-                        height: "100px",
-                        borderRadius: "8px",
-                        border: "1px solid #ccc",
-                        overflow: "hidden",
-                        background: "#f8f9fa",
-                      }}
-                    >
-                      <img
-                        src={previewUrl}
-                        alt={file.name}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                      />
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        className="position-absolute top-0 end-0 m-1 p-1 rounded-circle"
-                        style={{
-                          width: "22px",
-                          height: "22px",
-                          fontSize: "12px",
-                        }}
-                        onClick={() => handleRemoveNewImage(idx)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
         </Form>
       </Modal.Body>
 

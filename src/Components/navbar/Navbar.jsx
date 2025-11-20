@@ -22,6 +22,7 @@ import {
 import { useCart } from "../../contexts/CartContext";
 import logo from "../../assets/UVC.png";
 import "./Navbar.css";
+import { Link } from "react-router-dom";
 
 const Navbars = () => {
   const [search, setSearch] = useState("");
@@ -220,8 +221,8 @@ const Navbars = () => {
                 </NavDropdown>
               );
             })}
-            <Nav.Link onClick={() => goToCategory("events")}>
-              COMMUNITY
+            <Nav.Link as={Link} to="/about">
+              About
             </Nav.Link>
 
             {isStaff && (

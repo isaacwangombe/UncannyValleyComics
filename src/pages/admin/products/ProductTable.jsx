@@ -1,5 +1,7 @@
+// src/admin/products/ProductTable.jsx
 import React from "react";
 import { Table, Button, Badge, Form } from "react-bootstrap";
+import "../../../styles/admin-theme.css";
 
 const ProductTable = ({
   products,
@@ -7,9 +9,11 @@ const ProductTable = ({
   onEdit,
   onView,
   onToggleTrending,
+  onDelete, // NEW prop
   backendUrl,
 }) => {
   const findCategory = (id) => categories.find((c) => c.id === id);
+
   return (
     <Table bordered hover responsive>
       <thead>
@@ -27,11 +31,13 @@ const ProductTable = ({
           <th>Actions</th>
         </tr>
       </thead>
+
       <tbody>
         {products.length ? (
           products.map((p) => {
             const sub = findCategory(p.category);
             const main = sub ? findCategory(sub.parent) : null;
+
             return (
               <tr key={p.id}>
                 <td>{p.id}</td>
@@ -74,15 +80,26 @@ const ProductTable = ({
                     size="sm"
                     variant="outline-primary"
                     onClick={() => onView(p)}
+                    className="me-1"
                   >
                     View
-                  </Button>{" "}
+                  </Button>
+
                   <Button
                     size="sm"
                     variant="outline-secondary"
                     onClick={() => onEdit(p)}
+                    className="me-1"
                   >
                     Edit
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline-danger"
+                    onClick={() => onDelete && onDelete(p.id)}
+                  >
+                    Delete
                   </Button>
                 </td>
               </tr>

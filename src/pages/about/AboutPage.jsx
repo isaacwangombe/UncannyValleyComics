@@ -1,8 +1,46 @@
-import React from "react";
-import { Container, Row, Col, Form, Button } from "react-bootstrap";
+import React, { useState } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Form,
+  Button,
+  Alert,
+  Spinner,
+} from "react-bootstrap";
 import "./AboutPage.css";
+import { apiSendMessage } from "../../api";
 
 const AboutPage = () => {
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    message: "",
+  });
+
+  const [status, setStatus] = useState("idle"); // idle | loading | success | error
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatus("loading");
+
+    try {
+      await apiSendMessage(form);
+      setStatus("success");
+
+      setStatus("success");
+      setForm({ first_name: "", last_name: "", email: "", message: "" });
+    } catch (err) {
+      console.error("Message send failed:", err);
+      setStatus("error");
+    }
+  };
+
   return (
     <div className="about-page">
       {/* 🌆 Hero Section */}
@@ -40,17 +78,12 @@ const AboutPage = () => {
           <Col md={6} className="mt-4 mt-md-0">
             <h2 className="fw-bold mb-3">Who We Are</h2>
             <p className="text-muted">
-              At <strong>Uncanny Valley Comics</strong>, we believe that the
-              future of storytelling lies in diverse voices. From African
-              superheroes to stories of the diaspora, our mission is to
-              highlight underrepresented creators and inspire the next
-              generation of comic book visionaries.
+              At <strong>Uncanny Valley Comics</strong>, we believe the future
+              of storytelling lies in diverse voices.
             </p>
             <p className="text-muted">
               We curate and sell comics, manga, games, art prints, and
-              collectibles from across Africa and beyond. Our Nairobi home base
-              doubles as a community space — a place where imagination thrives,
-              and creators connect.
+              collectibles from across Africa and beyond.
             </p>
           </Col>
         </Row>
@@ -70,17 +103,15 @@ const AboutPage = () => {
             <Col md={6} className="mt-4 mt-md-0">
               <h2 className="fw-bold mb-3">Sell Your Comics</h2>
               <p className="text-muted">
-                Got comics, manga, or collectibles gathering dust? We'd love to
-                give them a new home. We buy personal collections and original
-                works directly from creators. Whether you're clearing space or
-                selling your art, we want to hear from you!
+                Got comics, manga, or collectibles gathering dust? We buy
+                personal collections and works from creators.
               </p>
               <p className="text-muted">
-                Reach out via email at{" "}
+                Email us at{" "}
                 <a href="mailto:uvcomicbooks@gmail.com">
                   uvcomicbooks@gmail.com
-                </a>{" "}
-                or message us through our social media pages.
+                </a>
+                .
               </p>
               <p className="text-muted small">
                 P.S. We also buy games, art prints, and original books.
@@ -96,20 +127,13 @@ const AboutPage = () => {
           <Col md={6}>
             <h2 className="fw-bold mb-3">Publish With Us</h2>
             <p className="text-muted">
-              Are you an aspiring comic book author or illustrator? Do you have
-              a story to tell but don’t know where to start? Uncanny Valley
-              Comics would love to publish your work.
+              Are you an aspiring comic author or illustrator? We offer guidance
+              and creative consultation.
             </p>
             <p className="text-muted">
-              We offer editorial guidance, creative consultation, and
-              connections to talented illustrators, colorists, and letterers.
-              We’re especially excited about stories rooted in African and Black
-              diaspora experiences and mythologies.
-            </p>
-            <p className="text-muted">
-              Go ahead. Make your dreams come true — reach out to us at{" "}
-              <a href="mailto:uvcomicbooks@gmail.com">uvcomicbooks@gmail.com</a>{" "}
-              or through our social media links.
+              Reach out at{" "}
+              <a href="mailto:uvcomicbooks@gmail.com">uvcomicbooks@gmail.com</a>
+              .
             </p>
           </Col>
           <Col md={6}>
@@ -127,29 +151,46 @@ const AboutPage = () => {
         <Container style={{ maxWidth: "720px" }}>
           <h2 className="fw-bold text-center mb-4">Get In Touch</h2>
           <p className="text-center text-muted mb-5">
-            Have a question, collaboration idea, or submission? Drop us a
-            message — we’d love to hear from you.
+            Have a question or collaboration idea? Send us a message below.
           </p>
 
-          <Form>
+          {/* Alerts */}
+          {status === "success" && (
+            <Alert variant="success" className="text-center">
+              🎉 Message sent! We’ll get back to you soon.
+            </Alert>
+          )}
+
+          {status === "error" && (
+            <Alert variant="danger" className="text-center">
+              ❌ Something went wrong. Please try again.
+            </Alert>
+          )}
+
+          <Form onSubmit={handleSubmit}>
             <Row className="mb-3">
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>First Name</Form.Label>
                   <Form.Control
-                    type="text"
-                    placeholder="Your first name"
+                    name="first_name"
+                    value={form.first_name}
+                    onChange={handleChange}
                     required
+                    placeholder="Your first name"
                   />
                 </Form.Group>
               </Col>
+
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Last Name</Form.Label>
                   <Form.Control
-                    type="text"
-                    placeholder="Your last name"
+                    name="last_name"
+                    value={form.last_name}
+                    onChange={handleChange}
                     required
+                    placeholder="Your last name"
                   />
                 </Form.Group>
               </Col>
@@ -158,9 +199,12 @@ const AboutPage = () => {
             <Form.Group className="mb-3">
               <Form.Label>Email</Form.Label>
               <Form.Control
+                name="email"
                 type="email"
-                placeholder="you@example.com"
+                value={form.email}
+                onChange={handleChange}
                 required
+                placeholder="you@example.com"
               />
             </Form.Group>
 
@@ -169,14 +213,30 @@ const AboutPage = () => {
               <Form.Control
                 as="textarea"
                 rows={4}
-                placeholder="Tell us how we can help..."
+                name="message"
+                value={form.message}
+                onChange={handleChange}
                 required
+                placeholder="Tell us how we can help…"
               />
             </Form.Group>
 
             <div className="text-center">
-              <Button variant="light" size="lg" className="px-5">
-                Send Message
+              <Button
+                variant="light"
+                size="lg"
+                className="px-5"
+                type="submit"
+                disabled={status === "loading"}
+              >
+                {status === "loading" ? (
+                  <>
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    Sending…
+                  </>
+                ) : (
+                  "Send Message"
+                )}
               </Button>
             </div>
           </Form>

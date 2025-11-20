@@ -20,6 +20,7 @@ import {
   deleteCategoryImage,
 } from "../../apiAdmin";
 import { ChevronRight, CornerDownRight } from "lucide-react";
+import "../../styles/admin-theme.css";
 
 const CategoriesAdminPage = () => {
   const [categories, setCategories] = useState([]);
